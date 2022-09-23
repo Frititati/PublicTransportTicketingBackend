@@ -26,7 +26,15 @@ class SecurityConfiguration(val jwtUtils: JwtUtils) : WebSecurityConfigurerAdapt
 
     // TODO: /device/register 403 sempre
     override fun configure(http: HttpSecurity) {
-        http.csrf().disable().authorizeRequests().anyRequest().permitAll()
+        http
+            .csrf().disable()
+            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            .and()
+            .authorizeRequests()
+            .mvcMatchers("/device/register").hasRole(Role.ADMIN.toString())
+            .anyRequest().permitAll()
+            .and()
+            .addFilter(jwtAuthTokenFilter())
     }
 
     @Bean
