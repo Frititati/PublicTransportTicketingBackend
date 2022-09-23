@@ -1,5 +1,6 @@
 package it.polito.wa2.registration_login.controllers
 
+import it.polito.wa2.registration_login.dtos.DeviceRegistrationDTO
 import it.polito.wa2.registration_login.dtos.RegistrationDTO
 import it.polito.wa2.registration_login.dtos.ValidateDTO
 import it.polito.wa2.registration_login.services.DeviceService
@@ -33,9 +34,16 @@ class RegistrationEndpoint(val userService: UserService, val deviceService: Devi
         return ResponseEntity.status(validationStatus.first).body(validationStatus.second)
     }
 
-    @PostMapping("/iot/register")
-    fun registerIOT(@RequestBody payload: RegistrationDTO) : ResponseEntity<RegistrationToValidate> {
-        return ResponseEntity(null, HttpStatus.OK)
+    @PostMapping("/device/register")
+    fun registerDevice(@RequestBody payload: DeviceRegistrationDTO) : ResponseEntity<RegistrationToValidate> {
+
+        val registrationStatus: Pair<HttpStatus, UUID?> = deviceService.registerDevice(payload)
+
+        return if (registrationStatus.first === HttpStatus.ACCEPTED)
+            ResponseEntity.status(registrationStatus.first)
+                .body(RegistrationToValidate(registrationStatus.second, payload.nickname))
+        else
+            ResponseEntity.status(registrationStatus.first).body(null)
     }
 }
 
