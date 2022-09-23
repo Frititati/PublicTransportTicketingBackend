@@ -31,6 +31,11 @@ class RegistrationEndpoint(val userService: UserService) {
 
         return ResponseEntity.status(validationStatus.first).body(validationStatus.second)
     }
+
+    @PostMapping("/iot/register")
+    fun registerIOT(@RequestBody payload: RegistrationDTO) : ResponseEntity<RegistrationToValidate> {
+        return ResponseEntity(null, HttpStatus.OK)
+    }
 }
 
 data class RegistrationToValidate(val provisional_id: UUID?, val email: String)

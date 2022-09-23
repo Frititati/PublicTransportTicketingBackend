@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
 import java.util.*
+import javax.crypto.SecretKey
 
 @Service
 class TransitService {
@@ -33,7 +34,8 @@ class TransitService {
         if (ticket.jws.isEmpty()) return Pair(HttpStatus.BAD_REQUEST, null)
         else
             try {
-                Jwts.parserBuilder().setSigningKey(ticketKey).build().parseClaimsJws(ticket.jws)
+                val generatedKey: SecretKey = Keys.hmacShaKeyFor(ticketKey.toByteArray(StandardCharsets.UTF_8))
+                Jwts.parserBuilder().setSigningKey(generatedKey).build().parseClaimsJws(ticket.jws)
 
                 // we know ticket is valid
 

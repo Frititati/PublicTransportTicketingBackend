@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController
 class TransitEndpoint(val transitService: TransitService) {
     @PostMapping("/ticket/validate")
     suspend fun ticketValidate(@RequestBody ticket: TicketToValidateDTO): ResponseEntity<TicketValidatedDTO> {
-        return ResponseEntity(null, HttpStatus.BAD_REQUEST)
+        val result = transitService.validateTicket(ticket)
+        return ResponseEntity(result.second, result.first)
     }
 }
