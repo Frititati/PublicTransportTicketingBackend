@@ -4,8 +4,8 @@ import it.polito.wa2.transit.entities.TicketValidated
 import java.time.LocalDateTime
 import java.util.*
 
-data class TicketValidatedDTO (val id: UUID, val validationDate: LocalDateTime, val zid: String)
+data class TicketValidatedDTO(var id: Long?, val ticketId : UUID, val validationDate: LocalDateTime, val zid: String)
 
-fun TicketValidated.toDTO() : TicketValidatedDTO {
-    return TicketValidatedDTO(id, validationDate,zid)
+fun TicketValidated.toDTO(): TicketValidatedDTO {
+    return TicketValidatedDTO(id, ticketId, validationDate, zid)
 }

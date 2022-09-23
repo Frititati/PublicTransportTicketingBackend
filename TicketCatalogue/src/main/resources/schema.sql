@@ -17,3 +17,5 @@ CREATE TABLE IF NOT EXISTS orders (
     status varchar,
     price double precision
 );
+
+-- TODO: aggiungere ticket dentro available_tickets con INSERT INTO

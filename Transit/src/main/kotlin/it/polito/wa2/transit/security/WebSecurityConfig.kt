@@ -19,9 +19,10 @@ class WebSecurityConfig(private val jwtUtils: JwtUtils) {
 
 
         return http.authorizeExchange()
-            .pathMatchers("/tickets").permitAll()
-            .pathMatchers("/shop/**", "/orders", "/orders/**").hasRole("CUSTOMER")
-            .pathMatchers("/admin/**").hasRole("ADMIN")
+            //.pathMatchers("/tickets").permitAll()
+            .pathMatchers("/ticket/validate").permitAll()
+            //.pathMatchers("/shop/**", "/orders", "/orders/**").hasRole("CUSTOMER")
+            //.pathMatchers("/admin/**").hasRole("ADMIN")
             .and()
             .addFilterAt(jwtAuthTokenFilter(), SecurityWebFiltersOrder.AUTHORIZATION)
             .csrf().disable()

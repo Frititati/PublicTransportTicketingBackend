@@ -13,44 +13,53 @@ import io.jsonwebtoken.security.*
 import it.polito.wa2.transit.dtos.toDTO
 import it.polito.wa2.transit.entities.TicketValidated
 import it.polito.wa2.transit.repositories.TicketValidatedRepository
+import kotlinx.coroutines.reactive.awaitLast
 import org.springframework.beans.factory.annotation.Autowired
+import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
 import java.util.*
 
 @Service
 class TransitService {
     @Autowired
-    lateinit var ticketValidatedRepository : TicketValidatedRepository
+    lateinit var ticketValidatedRepository: TicketValidatedRepository
 
     @Value("\${application.ticketKey}")
     lateinit var ticketKey: String
 
-    suspend fun validateTicket(ticket: TicketToValidateDTO) : Pair<HttpStatus, TicketValidatedDTO?>{
+    suspend fun validateTicket(ticket: TicketToValidateDTO): Pair<HttpStatus, TicketValidatedDTO?> {
         // TODO add into security context the zone for the embedded device
 
-        if(ticket.jws.isEmpty()) return Pair(HttpStatus.BAD_REQUEST, null)
+        if (ticket.jws.isEmpty()) return Pair(HttpStatus.BAD_REQUEST, null)
         else
             try {
                 Jwts.parserBuilder().setSigningKey(ticketKey).build().parseClaimsJws(ticket.jws)
 
                 // we know ticket is valid
 
-                val zidTicket = Jwts.parserBuilder().setSigningKey(ticketKey).build().parseClaimsJws(ticket.jws).body["zid"].toString()
+                val zidTicket = Jwts.parserBuilder().setSigningKey(generatedKey).build()
+                    .parseClaimsJws(ticket.jws).body["zid"].toString()
                 val zidMachine = ticket.zid
-                val id = Jwts.parserBuilder().setSigningKey(ticketKey).build().parseClaimsJws(ticket.jws).body.subject.toString()
+                val ticketId = UUID.fromString(Jwts.parserBuilder().setSigningKey(generatedKey).build()
+                    .parseClaimsJws(ticket.jws).body.subject.toString())
 
                 //check match gate and ticket zone
-                return if (zidTicket === zidMachine){
-                    // save in repo
-                    val entity = TicketValidated(UUID.fromString(id), LocalDateTime.now(), zidTicket)
-                    ticketValidatedRepository.save(entity)
+                return if (zidTicket.contains(zidMachine)) {
+                    // check if ticket already exists inside db
+                    // if false there is no ticket with the same UUID, so the ticket is never used
+                    if(!ticketValidatedRepository.existsByTicketId(ticketId).awaitLast()){
+                        // save in repo
+                        val entity = TicketValidated(null, ticketId, LocalDateTime.now(), zidTicket)
+                        ticketValidatedRepository.save(entity).awaitLast()
+                        // TODO test await last
 
-                    val dto: TicketValidatedDTO = entity.toDTO()
+                        val dto: TicketValidatedDTO = entity.toDTO()
 
-                    // allow passage
-                    Pair(HttpStatus.ACCEPTED, dto)
+                        // allow passage
+                        Pair(HttpStatus.ACCEPTED, dto)
+                    } else Pair(HttpStatus.BAD_REQUEST, null)
 
-                }else Pair(HttpStatus.BAD_REQUEST, null)
+                } else Pair(HttpStatus.BAD_REQUEST, null)
 
             } catch (ex: SignatureException) {
                 println("Invalid signature")

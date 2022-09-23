@@ -169,7 +169,7 @@ class CustomerService(
     }
 
     suspend fun contactTicketService(ticket: AvailableTicket, jwt: String, purchaseRequest: PurchaseRequestDTO): List<TicketDTO>? {
-
+        // TODO: make zone dynamic (not always ABC)
         val body = TicketPurchaseDTO("buy_tickets", purchaseRequest.numberOfTickets, "ABC", ticket.type, ticket.type.exp)
 
         return try {
