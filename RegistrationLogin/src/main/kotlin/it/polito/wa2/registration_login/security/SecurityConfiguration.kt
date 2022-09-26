@@ -31,6 +31,7 @@ class SecurityConfiguration(val jwtUtils: JwtUtils) : WebSecurityConfigurerAdapt
             .and()
             .authorizeRequests()
             .mvcMatchers("/device/register").hasRole(Role.ADMIN.toString())
+            .mvcMatchers("/admin/**").hasRole(Role.ADMIN.toString())
             .anyRequest().permitAll()
             .and()
             .addFilter(jwtAuthTokenFilter())
