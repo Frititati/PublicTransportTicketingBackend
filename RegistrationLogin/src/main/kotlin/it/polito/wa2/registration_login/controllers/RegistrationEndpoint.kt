@@ -15,7 +15,7 @@ import java.util.*
 class RegistrationEndpoint(val registerService: RegisterService) {
 
     @PostMapping("/user/register")
-    fun registerUser(@RequestBody payload: UserRegistrationDTO): ResponseEntity<RegistrationToValidate> {
+    suspend fun registerUser(@RequestBody payload: UserRegistrationDTO): ResponseEntity<RegistrationToValidate> {
         val registrationStatus: Pair<HttpStatus, UUID?> = registerService.registerUser(payload)
 
         return if (registrationStatus.first === HttpStatus.ACCEPTED)
@@ -26,7 +26,7 @@ class RegistrationEndpoint(val registerService: RegisterService) {
     }
 
     @PostMapping("/user/validate")
-    fun validateUser(@RequestBody payload: ValidateRegistration): ResponseEntity<ValidateDTO> {
+    suspend fun validateUser(@RequestBody payload: ValidateRegistration): ResponseEntity<ValidateDTO> {
         val validationStatus: Pair<HttpStatus, ValidateDTO?> =
             registerService.validate(payload.provisional_id, payload.activation_code)
 
@@ -34,7 +34,7 @@ class RegistrationEndpoint(val registerService: RegisterService) {
     }
 
     @PostMapping("/device/register")
-    fun registerDevice(@RequestBody payload: DeviceRegistrationDTO): ResponseEntity<DeviceRegistered> {
+    suspend fun registerDevice(@RequestBody payload: DeviceRegistrationDTO): ResponseEntity<DeviceRegistered> {
 
         val registrationStatus: Pair<HttpStatus, String?> = registerService.registerDevice(payload)
 

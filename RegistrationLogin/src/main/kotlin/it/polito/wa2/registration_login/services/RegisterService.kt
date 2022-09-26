@@ -8,7 +8,10 @@ import it.polito.wa2.registration_login.repositories.ActivationRepository
 import it.polito.wa2.registration_login.repositories.DeviceRepository
 import it.polito.wa2.registration_login.repositories.UserRepository
 import it.polito.wa2.registration_login.security.Role
-import it.polito.wa2.registration_login.security.SecurityConfiguration
+import it.polito.wa2.registration_login.security.WebSecurityConfig
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.reactive.awaitLast
+import kotlinx.coroutines.withContext
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.scheduling.annotation.Scheduled
@@ -34,7 +37,7 @@ class RegisterService {
     lateinit var deviceRepository: DeviceRepository
 
     @Autowired
-    lateinit var securityConfiguration: SecurityConfiguration
+    lateinit var webSecurityConfig: WebSecurityConfig
 
     private val specialChar = "[!\"#$%&'()*+,-./:;\\\\<=>?@\\[\\]^_`{|}~]"
     private val mailChar =
@@ -42,7 +45,7 @@ class RegisterService {
     private val min = 100000
     private val max = 999999
 
-    fun registerUser(user: UserRegistrationDTO): Pair<HttpStatus, UUID?> {
+    suspend fun registerUser(user: UserRegistrationDTO): Pair<HttpStatus, UUID?> {
         /**
          * 1. username, password, and email address cannot be empty;
          * 2. username and email address must be unique system-wide;
@@ -50,41 +53,47 @@ class RegisterService {
         it must contain at least one digit, one uppercase letter, one lowercase letter, one non-alphanumeric character);
          * 4. email address must be valid.
          */
+        // TODO: migliorabile togliendo awaitLast e usando and ecc..
         return when {
             user.nickname.isEmpty() || user.email.isEmpty() -> Pair(HttpStatus.BAD_REQUEST, null)
-            userRepository.findByNickname(user.nickname)?.nickname?.isNotEmpty() == true -> Pair(
+            userRepository.findByNickname(user.nickname).awaitLast()?.nickname?.isNotEmpty() == true -> Pair(
                 HttpStatus.BAD_REQUEST,
                 null
             )
 
-            userRepository.findByEmail(user.email)?.email?.isNotEmpty() == true -> Pair(HttpStatus.BAD_REQUEST, null)
-            !validatePassword(user.password) -> Pair(HttpStatus.BAD_REQUEST, null)
-            !validateEmail(user.email) -> Pair(HttpStatus.BAD_REQUEST, null)
+            userRepository.findByEmail(user.email).awaitLast()?.email?.isNotEmpty() == true -> Pair(HttpStatus.BAD_REQUEST, null)
+            !withContext(Dispatchers.IO) {
+                validatePassword(user.password)
+            } -> Pair(HttpStatus.BAD_REQUEST, null)
+            !withContext(Dispatchers.IO) {
+                validateEmail(user.email)
+            } -> Pair(HttpStatus.BAD_REQUEST, null)
             else -> {
                 try {
-                    val userToDB =
-                        userRepository.save(
+                    // TODO: it's better to do it in another way transactionally?
+                        val userToDB = userRepository.save(
                             User(
                                 null,
                                 user.nickname,
-                                securityConfiguration.passwordEncoder().encode(user.password),
+                                webSecurityConfig.passwordEncoder().encode(user.password),
                                 user.email,
                                 Role.CUSTOMER,
                                 false,
-                                null
                             )
-                        )
+                        ).awaitLast()
 
-                    val activationRow =
-                        activationRepository.save(
-                            Activation(
-                                null,
-                                (Math.random() * (max - min) + min).toInt(),
-                                LocalDateTime.now().plusDays(1),
-                                5,
-                                userToDB
-                            )
-                        )
+                        val activationRow =
+                            activationRepository.save(
+                                Activation(
+                                    null,
+                                    (Math.random() * (max - min) + min).toInt(),
+                                    LocalDateTime.now().plusDays(1),
+                                    5,
+                                    userToDB.id
+                                )
+                            ).awaitLast()
+
+
 
                     emailService.sendMessage(user.email, activationRow.activationCode)
 
@@ -148,7 +157,7 @@ class RegisterService {
     }
 
 
-    fun registerDevice(device: DeviceRegistrationDTO): Pair<HttpStatus, String?> {
+    suspend fun registerDevice(device: DeviceRegistrationDTO): Pair<HttpStatus, String?> {
         /**
          * 1. username, password, and email address cannot be empty;
          * 2. username and email address must be unique system-wide;
@@ -158,23 +167,25 @@ class RegisterService {
          */
         return when {
             device.name.isEmpty() -> Pair(HttpStatus.BAD_REQUEST, null)
-            userRepository.findByNickname(device.name)?.nickname?.isNotEmpty() == true -> Pair(
+            userRepository.findByNickname(device.name).awaitLast()?.nickname?.isNotEmpty() == true -> Pair(
                 HttpStatus.BAD_REQUEST,
                 null
             )
 
-            !validatePassword(device.password) -> Pair(HttpStatus.BAD_REQUEST, null)
+            !withContext(Dispatchers.IO) {
+                validatePassword(device.password)
+            } -> Pair(HttpStatus.BAD_REQUEST, null)
             else -> {
                 try {
                     deviceRepository.save(
                         Device(
                             null,
                             device.name,
-                            securityConfiguration.passwordEncoder().encode(device.password),
+                            webSecurityConfig.passwordEncoder().encode(device.password),
                             device.zone,
                             Role.DEVICE
                         )
-                    )
+                    ).awaitLast()
 
                     Pair(HttpStatus.ACCEPTED, device.name)
                 } catch (e: Exception) {
@@ -184,50 +195,52 @@ class RegisterService {
         }
     }
 
-    fun validate(provisional_id: String, activation_code: Int): Pair<HttpStatus, ValidateDTO?> {
+    suspend fun validate(provisional_id: String, activation_code: Int): Pair<HttpStatus, ValidateDTO?> {
 
         try {
             // if provisional_id exist, fetch the row from db
-            val activationRow = activationRepository.findById(UUID.fromString(provisional_id))
+            val activationRow = activationRepository.findById(UUID.fromString(provisional_id)).awaitLast()
 
-            if (activationRow.isEmpty)
+            //TODO: test if works
+            if (activationRow.id === null)
                 return Pair(HttpStatus.NOT_FOUND, null)
             else {
-                val activation = activationRow.get()
-                val activationDTO = activation.toDTO()
+                val activationDTO = activationRow.toDTO()
 
                 // if expiration < now() -> delete rows from db + 404
                 if (activationDTO.deadline.isBefore(LocalDateTime.now())) {
-                    activationRepository.deleteById(UUID.fromString(provisional_id))
-                    activationDTO.user.id?.let { userRepository.deleteById(it) }
+                    activationRepository.deleteById(UUID.fromString(provisional_id)).awaitLast()
+                    activationDTO.userId.let {
+                        if (it != null) {
+                            userRepository.deleteById(it).awaitLast()
+                        }
+                    }
                     return Pair(HttpStatus.NOT_FOUND, null)
                 } else if (activation_code != activationDTO.activationCode) {
                     // if provisional_id ok but wrong activation_code -> counter-1 + 404
                     if (activationDTO.counter == 1) {
                         // if counter == 0 -> 404 + delete rows from db
-                        activationRepository.deleteById(UUID.fromString(provisional_id))
-                        activationDTO.user.id?.let { userRepository.deleteById(it) }
+                        activationRepository.deleteById(UUID.fromString(provisional_id)).awaitLast()
+                        activationDTO.userId?.let { userRepository.deleteById(it) }
 
                     } else {
                         //counter - 1
-                        activation.counter--
+                        activationRow.counter--
 
-                        activationRepository.save(activation)
+                        activationRepository.save(activationRow).awaitLast()
                     }
                     return Pair(HttpStatus.NOT_FOUND, null)
 
                 } else {
                     // if provisional_id + activation_code ok -> return ValidateDTO + 201
-                    val userRow = userRepository.findById(activationDTO.user.id!!)
-                    val user = userRow.get()
-                    user.active = true
-                    user.activation = null
+                    val userRow = userRepository.findById(activationDTO.userId!!).awaitLast()
+                    userRow.active = true
 
-                    userRepository.save(user)
+                    userRepository.save(userRow).awaitLast()
 
-                    activationRepository.deleteById(UUID.fromString(provisional_id))
+                    activationRepository.deleteById(UUID.fromString(provisional_id)).awaitLast()
 
-                    val userDTO = user.toDTO()
+                    val userDTO = userRow.toDTO()
                     return Pair(HttpStatus.CREATED, ValidateDTO(userDTO.id!!, userDTO.nickname, userDTO.email))
                 }
             }
@@ -239,10 +252,12 @@ class RegisterService {
     }
 
     @Scheduled(fixedDelay = 20000)
-    fun registrationScheduledCleanup() {
+    suspend fun registrationScheduledCleanup() {
         activationRepository.findAllExpired().map {
-            it.user.id?.let { it1 -> userRepository.deleteById(it1) }
-        }
+            it.map {user ->
+                user.userId?.let { it1 -> userRepository.deleteById(it1) }
+            }
+        }.awaitLast()
     }
 }
 

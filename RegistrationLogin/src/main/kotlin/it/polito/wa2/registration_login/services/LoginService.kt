@@ -6,7 +6,8 @@ import it.polito.wa2.registration_login.dtos.LoginDTO
 import it.polito.wa2.registration_login.repositories.DeviceRepository
 import it.polito.wa2.registration_login.repositories.UserRepository
 import it.polito.wa2.registration_login.security.Role
-import it.polito.wa2.registration_login.security.SecurityConfiguration
+import it.polito.wa2.registration_login.security.WebSecurityConfig
+import kotlinx.coroutines.reactive.awaitLast
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
@@ -27,19 +28,19 @@ class LoginService {
     lateinit var deviceRepository: DeviceRepository
 
     @Autowired
-    lateinit var securityConfiguration: SecurityConfiguration
+    lateinit var webSecurityConfig: WebSecurityConfig
 
     @Value("\${application.registration_loginKey}")
     lateinit var secretString: String
 
-    fun loginUser(credentials: LoginDTO): Pair<HttpStatus, String?> {
+    suspend fun loginUser(credentials: LoginDTO): Pair<HttpStatus, String?> {
 
-        val user = userRepository.findByNickname(credentials.username)
+        val user = userRepository.findByNickname(credentials.username).awaitLast()
 
         return if (user?.nickname?.isNotEmpty() == true) {
             val userPassword = user.password
             val userActive = user.active
-            if (securityConfiguration.passwordEncoder().matches(credentials.password, userPassword) && userActive) {
+            if (webSecurityConfig.passwordEncoder().matches(credentials.password, userPassword) && userActive) {
 
 
                 val generatedKey: SecretKey = Keys.hmacShaKeyFor(secretString.toByteArray(StandardCharsets.UTF_8))
@@ -61,13 +62,13 @@ class LoginService {
         } else Pair(HttpStatus.BAD_REQUEST, null)
     }
 
-    fun loginDevice(credentials: LoginDTO): Pair<HttpStatus, String?> {
+    suspend fun loginDevice(credentials: LoginDTO): Pair<HttpStatus, String?> {
 
-        val device = deviceRepository.findByName(credentials.username)
+        val device = deviceRepository.findByName(credentials.username).awaitLast()
 
         return if (device?.name?.isNotEmpty() == true) {
             val userPassword = device.password
-            if (securityConfiguration.passwordEncoder().matches(credentials.password, userPassword)) {
+            if (webSecurityConfig.passwordEncoder().matches(credentials.password, userPassword)) {
 
                 val generatedKey: SecretKey = Keys.hmacShaKeyFor(secretString.toByteArray(StandardCharsets.UTF_8))
 

@@ -1,11 +1,10 @@
 package it.polito.wa2.registration_login.repositories
 
 import it.polito.wa2.registration_login.entities.Device
-import org.springframework.data.repository.CrudRepository
-import org.springframework.stereotype.Repository
+import org.springframework.data.r2dbc.repository.R2dbcRepository
+import reactor.core.publisher.Mono
 
-@Repository
-interface DeviceRepository : CrudRepository<Device, Long> {
+interface DeviceRepository : R2dbcRepository<Device, Long> {
 
-    fun findByName(name: String): Device?
+    fun findByName(name: String): Mono<Device?>
 }

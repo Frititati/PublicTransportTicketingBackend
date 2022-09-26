@@ -7,7 +7,7 @@ import it.polito.wa2.registration_login.entities.User
 import it.polito.wa2.registration_login.repositories.ActivationRepository
 import it.polito.wa2.registration_login.repositories.UserRepository
 import it.polito.wa2.registration_login.security.Role
-import it.polito.wa2.registration_login.security.SecurityConfiguration
+import it.polito.wa2.registration_login.security.WebSecurityConfig
 import it.polito.wa2.registration_login.services.EmailService
 import it.polito.wa2.registration_login.services.RegisterService
 import org.junit.jupiter.api.Assertions
@@ -35,7 +35,7 @@ class UnitTestsBusinessLogic {
 
 
     @Autowired
-    lateinit var securityConfiguration: SecurityConfiguration
+    lateinit var webSecurityConfig: WebSecurityConfig
 
     @Test
     fun rejectRegisterInvalidPassword_empty() {
@@ -149,7 +149,7 @@ class UnitTestsBusinessLogic {
                 User(
                     null,
                     "testUser",
-                    securityConfiguration.passwordEncoder().encode("Password123)"),
+                    webSecurityConfig.passwordEncoder().encode("Password123)"),
                     "testUser@gmail.com",
                     Role.CUSTOMER,
                     false,
@@ -179,7 +179,7 @@ class UnitTestsBusinessLogic {
                 User(
                     null,
                     "testUser",
-                    securityConfiguration.passwordEncoder().encode("Password123)"),
+                    webSecurityConfig.passwordEncoder().encode("Password123)"),
                     "testUser@gmail.com",
                     Role.CUSTOMER,
                     false,
@@ -217,7 +217,7 @@ class UnitTestsBusinessLogic {
                 User(
                     null,
                     "testUser",
-                    securityConfiguration.passwordEncoder().encode("Password123)"),
+                    webSecurityConfig.passwordEncoder().encode("Password123)"),
                     "testUser@gmail.com",
                     Role.CUSTOMER,
                     false,
@@ -268,7 +268,7 @@ class UnitTestsBusinessLogic {
                 User(
                     null,
                     "testUser",
-                    securityConfiguration.passwordEncoder().encode("Password123)"),
+                    webSecurityConfig.passwordEncoder().encode("Password123)"),
                     "testUser@gmail.com",
                     Role.CUSTOMER,
                     false,
@@ -302,7 +302,7 @@ class UnitTestsBusinessLogic {
                 User(
                     null,
                     "testUser",
-                    securityConfiguration.passwordEncoder().encode("Password123)"),
+                    webSecurityConfig.passwordEncoder().encode("Password123)"),
                     "testUser@gmail.com",
                     Role.CUSTOMER,
                     false,
@@ -341,7 +341,7 @@ class UnitTestsBusinessLogic {
                 User(
                     null,
                     "testUser",
-                    securityConfiguration.passwordEncoder().encode("Password123)"),
+                    webSecurityConfig.passwordEncoder().encode("Password123)"),
                     "testUser@gmail.com",
                     Role.CUSTOMER,
                     false,
@@ -372,7 +372,7 @@ class UnitTestsBusinessLogic {
                 User(
                     null,
                     "testUser",
-                    securityConfiguration.passwordEncoder().encode("Password123)"),
+                    webSecurityConfig.passwordEncoder().encode("Password123)"),
                     "testUser@gmail.com",
                     Role.CUSTOMER,
                     false,
@@ -408,7 +408,7 @@ class UnitTestsBusinessLogic {
                 User(
                     null,
                     "testUser",
-                    securityConfiguration.passwordEncoder().encode("Password123)"),
+                    webSecurityConfig.passwordEncoder().encode("Password123)"),
                     "testUser@gmail.com",
                     Role.CUSTOMER,
                     false,

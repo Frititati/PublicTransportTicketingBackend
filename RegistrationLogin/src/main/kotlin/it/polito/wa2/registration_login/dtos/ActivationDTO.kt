@@ -10,9 +10,9 @@ data class ActivationDTO(
     val activationCode: Int,
     val deadline: LocalDateTime,
     var counter: Int,
-    val user: User
+    val userId: Long?
 )
 
 fun Activation.toDTO(): ActivationDTO {
-    return ActivationDTO(id, activationCode, deadline, counter, user)
+    return ActivationDTO(id, activationCode, deadline, counter, userId)
 }

@@ -1,20 +1,23 @@
 package it.polito.wa2.registration_login.entities
 
 import it.polito.wa2.registration_login.security.Role
-import javax.persistence.*
+import org.springframework.data.annotation.Id
+import org.springframework.data.relational.core.mapping.Column
+import org.springframework.data.relational.core.mapping.Table
 
-@Entity
-@Table(name = "users")
+@Table("users")
 class User(
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @Column("id")
     val id: Long?,
+    @Column("nickname")
     val nickname: String,
+    @Column("password")
     val password: String,
+    @Column("email")
     val email: String,
+    @Column("role")
     var role: Role,
+    @Column("active")
     var active: Boolean,
-
-    @OneToOne(mappedBy = "user", cascade = [CascadeType.ALL])
-    var activation: Activation?
 )

@@ -11,13 +11,13 @@ import org.springframework.web.bind.annotation.RestController
 class LoginEndpoint(val loginService: LoginService) {
 
     @PostMapping("/user/login")
-    fun loginUser(@RequestBody credentials: LoginDTO): ResponseEntity<LoginJWT> {
+    suspend fun loginUser(@RequestBody credentials: LoginDTO): ResponseEntity<LoginJWT> {
         val loginStatus = loginService.loginUser(credentials)
         return ResponseEntity.status(loginStatus.first).body(LoginJWT(loginStatus.second))
     }
 
     @PostMapping("/device/login")
-    fun loginDevice(@RequestBody credentials: LoginDTO): ResponseEntity<LoginJWT> {
+    suspend fun loginDevice(@RequestBody credentials: LoginDTO): ResponseEntity<LoginJWT> {
         val loginStatus = loginService.loginDevice(credentials)
         return ResponseEntity.status(loginStatus.first).body(LoginJWT(loginStatus.second))
     }

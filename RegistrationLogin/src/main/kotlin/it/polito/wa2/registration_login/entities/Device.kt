@@ -1,17 +1,22 @@
 package it.polito.wa2.registration_login.entities
 
 import it.polito.wa2.registration_login.security.Role
-import javax.persistence.*
+import org.springframework.data.annotation.Id
+import org.springframework.data.relational.core.mapping.Column
+import org.springframework.data.relational.core.mapping.Table
 
-@Entity
-@Table(name = "devices")
+@Table("devices")
 class Device(
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @Column("id")
     val id: Long?,
+    @Column("name")
     val name: String,
+    @Column("password")
     val password: String,
+    @Column("zone")
     val zone: String,
+    @Column("role")
     val role: Role
     // TODO check if role is necessary
 )
