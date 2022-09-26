@@ -83,4 +83,39 @@ class TransitService {
 
         return Pair(HttpStatus.BAD_REQUEST, null)
     }
+
+    @GetMapping("/admin/transit")
+    suspend fun getTransit(): ResponseEntity<List<UserOrdersDTO?>> {
+        val result = transitService.usersWithOrders(null)
+        return ResponseEntity(result.second, result.first)
+    }
+
+    /**
+     * @param userId : id of the user you want to see
+     * Get orders of a specific user
+     */
+    @GetMapping("/admin/transit/{zid}")
+    suspend fun getTransitByZone(@PathVariable userId: String): ResponseEntity<Flux<OrderDTO>> {
+        val result = transitService.getUserOrders(userId, null)
+        return ResponseEntity(result.second, result.first)
+    }
+
+    /**
+     * Get list of users with their orders on a selectable time period
+     */
+    @PostMapping("/admin/transit/")
+    suspend fun getTransitWithOrdersTimePeriod(@RequestBody timeReport : TimeReportDTO) : ResponseEntity<List<UserOrdersDTO?>> {
+        val result = transitService.usersWithOrders(timeReport)
+        return ResponseEntity(result.second, result.first)
+    }
+
+    /**
+     * @param userId : id of the user you want to see
+     * Get orders of a specific user on a selectable time period
+     */
+    @PostMapping("/admin/transit/{zid}/orders")
+    suspend fun getUserOrdersTimePeriod(@PathVariable userId: String, @RequestBody timeReport: TimeReportDTO) : ResponseEntity<Flux<OrderDTO>> {
+        val result = transitService.getUserOrders(userId, timeReport)
+        return ResponseEntity(result.second, result.first)
+    }
 }
