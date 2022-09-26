@@ -12,7 +12,7 @@ class User(
     val nickname: String,
     val password: String,
     val email: String,
-    val role: Role,
+    var role: Role,
     var active: Boolean,
 
     @OneToOne(mappedBy = "user", cascade = [CascadeType.ALL])
