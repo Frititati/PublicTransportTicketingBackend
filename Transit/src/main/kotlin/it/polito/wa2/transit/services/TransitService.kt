@@ -15,6 +15,12 @@ import it.polito.wa2.transit.entities.TicketValidated
 import it.polito.wa2.transit.repositories.TicketValidatedRepository
 import kotlinx.coroutines.reactive.awaitLast
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import reactor.core.publisher.Flux
 import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
 import java.util.*

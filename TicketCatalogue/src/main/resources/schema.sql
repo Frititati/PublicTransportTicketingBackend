@@ -15,7 +15,8 @@ CREATE TABLE IF NOT EXISTS orders (
     number_tickets integer,
     ticket_id double precision,
     status varchar,
-    price double precision
+    price double precision,
+    purchase_date timestamp
 );
 
 -- TODO: aggiungere ticket dentro available_tickets con INSERT INTO

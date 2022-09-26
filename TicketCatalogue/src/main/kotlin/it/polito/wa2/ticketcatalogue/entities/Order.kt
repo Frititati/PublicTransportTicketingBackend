@@ -3,6 +3,7 @@ package it.polito.wa2.ticketcatalogue.entities
 import org.springframework.data.annotation.Id
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
+import java.time.LocalDateTime
 
 @Table("orders")
 data class Order(
@@ -18,5 +19,7 @@ data class Order(
     @Column("status")
     var status: PaymentStatus,
     @Column("price")
-    var price: Double
+    var price: Double,
+    @Column("purchase_date")
+    var purchaseDate : LocalDateTime
 )

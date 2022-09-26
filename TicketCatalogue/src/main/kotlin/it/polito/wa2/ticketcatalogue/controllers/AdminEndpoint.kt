@@ -34,12 +34,6 @@ class AdminEndpoint(val adminService: AdminService) {
         return ResponseEntity(result.second, result.first)
     }
 
-    @GetMapping("/admin/users")
-    suspend fun getUsersWithOrders(): ResponseEntity<List<UserOrdersDTO?>> {
-        val result = adminService.usersWithOrders()
-        return ResponseEntity(result.second, result.first)
-    }
-
     /**
      * @param userId : id of the user you want to see
      */
@@ -51,11 +45,41 @@ class AdminEndpoint(val adminService: AdminService) {
     }
 
     /**
+     * Get list of users with their orders
+     */
+    @GetMapping("/admin/users")
+    suspend fun getUsersWithOrders(): ResponseEntity<List<UserOrdersDTO?>> {
+        val result = adminService.usersWithOrders(null)
+        return ResponseEntity(result.second, result.first)
+    }
+
+    /**
      * @param userId : id of the user you want to see
+     * Get orders of a specific user
      */
     @GetMapping("/admin/users/{userId}/orders")
     suspend fun getUserOrders(@PathVariable userId: String): ResponseEntity<Flux<OrderDTO>> {
-        val result = adminService.getUserOrders(userId)
+        val result = adminService.getUserOrders(userId, null)
+        return ResponseEntity(result.second, result.first)
+    }
+
+    /**
+     * Get list of users with their orders on a selectable time period
+     */
+    @PostMapping("/admin/users")
+    suspend fun getUsersWithOrdersTimePeriod(@RequestBody timeReport : TimeReportDTO) : ResponseEntity<List<UserOrdersDTO?>> {
+
+        val result = adminService.usersWithOrders(timeReport)
+        return ResponseEntity(result.second, result.first)
+    }
+
+    /**
+     * @param userId : id of the user you want to see
+     * Get orders of a specific user on a selectable time period
+     */
+    @PostMapping("/admin/users/{userId}/orders")
+    suspend fun getUserOrdersTimePeriod(@PathVariable userId: String, @RequestBody timeReport: TimeReportDTO) : ResponseEntity<Flux<OrderDTO>> {
+        val result = adminService.getUserOrders(userId, timeReport)
         return ResponseEntity(result.second, result.first)
     }
 }

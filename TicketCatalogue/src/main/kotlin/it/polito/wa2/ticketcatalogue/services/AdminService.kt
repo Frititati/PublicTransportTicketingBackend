@@ -20,6 +20,10 @@ import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.stream.Collectors
 
@@ -75,13 +79,30 @@ class AdminService(
         }
     }
 
-    suspend fun usersWithOrders(): Pair<HttpStatus, List<UserOrdersDTO?>> {
+    suspend fun usersWithOrders(timeReport: TimeReportDTO?): Pair<HttpStatus, List<UserOrdersDTO?>> {
         val jwt = ReactiveSecurityContextHolder.getContext()
             .map { obj: SecurityContext -> obj.authentication.principal as PrincipalUserDTO }.awaitLast().jwt!!
 
         return try {
 
-            val orders = ordersRepository.findAll().collectList().awaitLast()
+            val orders = if (timeReport === null)
+                ordersRepository.findAll().collectList().awaitLast()
+            else {
+                val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+                val startDate = LocalDate.parse(timeReport.initialDate, dateFormatter)
+                var startDateTime = LocalDateTime.of(startDate, LocalTime.of(0, 0))
+                val endDate = LocalDate.parse(timeReport.finalDate, dateFormatter)
+                var endDateTime = LocalDateTime.of(endDate, LocalTime.of(23, 59))
+                if (startDateTime.isAfter(endDateTime)) {
+                    val a = startDateTime
+                    startDateTime = endDateTime
+                    endDateTime = a
+                }
+                ordersRepository.findOrderByPurchaseDateGreaterThanEqualAndPurchaseDateLessThanEqual(
+                    startDateTime,
+                    endDateTime
+                ).collectList().awaitLast()
+            }
 
 
             val client = webClient.get()
@@ -109,6 +130,7 @@ class AdminService(
             Pair(HttpStatus.OK, result)
 
         } catch (e: Exception) {
+            println("$e")
             Pair(HttpStatus.BAD_REQUEST, emptyList())
         }
     }
@@ -137,9 +159,28 @@ class AdminService(
         }
     }
 
-    suspend fun getUserOrders(userId: String): Pair<HttpStatus, Flux<OrderDTO>> {
+    suspend fun getUserOrders(userId: String, timeReport: TimeReportDTO?): Pair<HttpStatus, Flux<OrderDTO>> {
         return try {
-            Pair(HttpStatus.OK, ordersRepository.findAllByNickname(userId).map { it.toDTO() })
+            val result = if (timeReport === null)
+                ordersRepository.findAllByNickname(userId).map { it.toDTO() }
+            else {
+                val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+                val startDate = LocalDate.parse(timeReport.initialDate, dateFormatter)
+                var startDateTime = LocalDateTime.of(startDate, LocalTime.of(0, 0))
+                val endDate = LocalDate.parse(timeReport.finalDate, dateFormatter)
+                var endDateTime = LocalDateTime.of(endDate, LocalTime.of(23, 59))
+                if (startDateTime.isAfter(endDateTime)) {
+                    val a = startDateTime
+                    startDateTime = endDateTime
+                    endDateTime = a
+                }
+                ordersRepository.findOrderByPurchaseDateGreaterThanEqualAndPurchaseDateLessThanEqualAndNickname(
+                    startDateTime,
+                    endDateTime,
+                    userId
+                ).map { it.toDTO() }
+            }
+            Pair(HttpStatus.OK, result)
         } catch (e: Exception) {
             Pair(HttpStatus.BAD_REQUEST, Flux.empty())
         }
@@ -156,7 +197,8 @@ class AdminService(
                     ticket.type != TicketType.SINGLE.toString() &&
                     ticket.type != TicketType.MONTHLY.toString() &&
                     ticket.type != TicketType.WEEKLY.toString() &&
-                    ticket.type != TicketType.YEARLY.toString()-> false
+                    ticket.type != TicketType.YEARLY.toString() -> false
+
             else -> true
 
         }

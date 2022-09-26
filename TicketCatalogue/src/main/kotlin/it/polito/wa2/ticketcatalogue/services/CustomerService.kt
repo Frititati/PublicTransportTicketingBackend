@@ -214,7 +214,8 @@ class CustomerService(
                         purchaseRequest.numberOfTickets,
                         ticketId,
                         PaymentStatus.PENDING,
-                        ticketPrice
+                        ticketPrice,
+                        LocalDateTime.now()
                     )
                 ).awaitLast()
 
