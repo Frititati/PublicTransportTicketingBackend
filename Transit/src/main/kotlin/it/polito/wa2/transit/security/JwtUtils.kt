@@ -39,7 +39,7 @@ class JwtUtils {
         val generatedKey: SecretKey = Keys.hmacShaKeyFor(secretString.toByteArray(StandardCharsets.UTF_8))
         return try {
             val u = Jwts.parserBuilder().setSigningKey(generatedKey).build().parseClaimsJws(authToken).body.subject
-            val role = Jwts.parserBuilder().setSigningKey(generatedKey).build().parseClaimsJws(authToken).body["roles"].toString()
+            val role = Jwts.parserBuilder().setSigningKey(generatedKey).build().parseClaimsJws(authToken).body["role"].toString()
             UserLoggedDTO(u, Role.valueOf(role))
 
         } catch (ex: Exception) {

@@ -7,5 +7,5 @@ import org.springframework.stereotype.Repository
 @Repository
 interface DeviceRepository : CrudRepository<Device, Long> {
 
-    fun findByDevice(device: String): Device?
+    fun findByName(name: String): Device?
 }

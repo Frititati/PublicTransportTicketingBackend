@@ -52,7 +52,7 @@ class LoginService {
                         )
                     )
                     .setIssuedAt(Date.from(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant()))
-                    .claim("roles", user.role)
+                    .claim("role", user.role)
                     .signWith(generatedKey)
                     .compact()
 
@@ -63,7 +63,7 @@ class LoginService {
 
     fun loginDevice(credentials: LoginDTO): Pair<HttpStatus, String?> {
 
-        val device = deviceRepository.findByDevice(credentials.username)
+        val device = deviceRepository.findByName(credentials.username)
 
         return if (device?.name?.isNotEmpty() == true) {
             val userPassword = device.password
@@ -79,7 +79,7 @@ class LoginService {
                         )
                     )
                     .setIssuedAt(Date.from(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant()))
-                    .claim("roles", Role.DEVICE)
+                    .claim("role", Role.DEVICE)
                     .claim("zone", device.zone)
                     .signWith(generatedKey)
                     .compact()
