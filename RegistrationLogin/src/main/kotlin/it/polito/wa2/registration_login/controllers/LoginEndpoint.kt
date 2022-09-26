@@ -8,11 +8,19 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-class LoginEndpoint (val loginService: LoginService) {
+class LoginEndpoint(val loginService: LoginService) {
 
     @PostMapping("/user/login")
-    fun login(@RequestBody credentials:LoginDTO): ResponseEntity<String> {
-        val loginStatus = loginService.login(credentials)
-        return ResponseEntity.status(loginStatus.first).body(loginStatus.second)
+    fun loginUser(@RequestBody credentials: LoginDTO): ResponseEntity<LoginJWT> {
+        val loginStatus = loginService.loginUser(credentials)
+        return ResponseEntity.status(loginStatus.first).body(LoginJWT(loginStatus.second))
+    }
+
+    @PostMapping("/device/login")
+    fun loginDevice(@RequestBody credentials: LoginDTO): ResponseEntity<LoginJWT> {
+        val loginStatus = loginService.loginDevice(credentials)
+        return ResponseEntity.status(loginStatus.first).body(LoginJWT(loginStatus.second))
     }
 }
+
+data class LoginJWT(val jwt: String?)

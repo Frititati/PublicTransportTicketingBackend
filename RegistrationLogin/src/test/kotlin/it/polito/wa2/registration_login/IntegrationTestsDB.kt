@@ -3,7 +3,7 @@ package it.polito.wa2.registration_login
 import it.polito.wa2.registration_login.controllers.RegistrationToValidate
 import it.polito.wa2.registration_login.controllers.ValidateRegistration
 import it.polito.wa2.registration_login.dtos.LoginDTO
-import it.polito.wa2.registration_login.dtos.RegistrationDTO
+import it.polito.wa2.registration_login.dtos.UserRegistrationDTO
 import it.polito.wa2.registration_login.repositories.ActivationRepository
 import it.polito.wa2.registration_login.repositories.UserRepository
 import org.junit.jupiter.api.Test
@@ -59,7 +59,7 @@ class IntegrationTestsDB {
     @Test
     fun registerUserSuccessfully() {
         val baseUrl = "http://localhost:$port/user"
-        val user = RegistrationDTO("testNickname", "Password123)", "testEmail@gmail.com")
+        val user = UserRegistrationDTO("testNickname", "Password123)", "testEmail@gmail.com")
 
         val request = HttpEntity(user)
         val response = restTemplate.postForEntity<Unit>("$baseUrl/register", request)
@@ -72,7 +72,7 @@ class IntegrationTestsDB {
     @Test
     fun registerUserEmptyEmail() {
         val baseUrl = "http://localhost:$port/user"
-        val user = RegistrationDTO("testNickname", "Password123)", "")
+        val user = UserRegistrationDTO("testNickname", "Password123)", "")
 
         val request = HttpEntity(user)
         val response = restTemplate.postForEntity<Unit>("$baseUrl/register", request)
@@ -83,7 +83,7 @@ class IntegrationTestsDB {
     @Test
     fun registerUserEmptyNickname() {
         val baseUrl = "http://localhost:$port/user"
-        val user = RegistrationDTO("", "Password123)", "testEmail@gmail.com")
+        val user = UserRegistrationDTO("", "Password123)", "testEmail@gmail.com")
 
         val request = HttpEntity(user)
         val response = restTemplate.postForEntity<Unit>("$baseUrl/register", request)
@@ -94,7 +94,7 @@ class IntegrationTestsDB {
     @Test
     fun registerUserEmptyPassword() {
         val baseUrl = "http://localhost:$port/user"
-        val user = RegistrationDTO("testNickname", "", "testEmail@gmail.com")
+        val user = UserRegistrationDTO("testNickname", "", "testEmail@gmail.com")
 
         val request = HttpEntity(user)
         val response = restTemplate.postForEntity<Unit>("$baseUrl/register", request)
@@ -105,7 +105,7 @@ class IntegrationTestsDB {
     @Test
     fun registerUserInvalidEmail_NoFinalPart() {
         val baseUrl = "http://localhost:$port/user"
-        val user = RegistrationDTO("testNickname", "Password123)", "testEmail@gmail")
+        val user = UserRegistrationDTO("testNickname", "Password123)", "testEmail@gmail")
 
         val request = HttpEntity(user)
         val response = restTemplate.postForEntity<Unit>("$baseUrl/register", request)
@@ -116,7 +116,7 @@ class IntegrationTestsDB {
     @Test
     fun registerUserInvalidEmail_NoAt() {
         val baseUrl = "http://localhost:$port/user"
-        val user = RegistrationDTO("testNickname", "Password123)", "testEmailGmail.com")
+        val user = UserRegistrationDTO("testNickname", "Password123)", "testEmailGmail.com")
 
         val request = HttpEntity(user)
         val response = restTemplate.postForEntity<Unit>("$baseUrl/register", request)
@@ -127,7 +127,7 @@ class IntegrationTestsDB {
     @Test
     fun registerUserInvalidPassword_NoSpecialChars() {
         val baseUrl = "http://localhost:$port/user"
-        val user = RegistrationDTO("testNickname", "Password123", "testEmail@gmail.com")
+        val user = UserRegistrationDTO("testNickname", "Password123", "testEmail@gmail.com")
 
         val request = HttpEntity(user)
         val response = restTemplate.postForEntity<Unit>("$baseUrl/register", request)
@@ -138,7 +138,7 @@ class IntegrationTestsDB {
     @Test
     fun registerUserInvalidPassword_No8Chars() {
         val baseUrl = "http://localhost:$port/user"
-        val user = RegistrationDTO("testNickname", "pass1)", "testEmail@gmail.com")
+        val user = UserRegistrationDTO("testNickname", "pass1)", "testEmail@gmail.com")
 
         val request = HttpEntity(user)
         val response = restTemplate.postForEntity<Unit>("$baseUrl/register", request)
@@ -149,7 +149,7 @@ class IntegrationTestsDB {
     @Test
     fun registerUserInvalidPassword_NoNumber() {
         val baseUrl = "http://localhost:$port/user"
-        val user = RegistrationDTO("testNickname", "Password)", "testEmail@gmail.com")
+        val user = UserRegistrationDTO("testNickname", "Password)", "testEmail@gmail.com")
 
         val request = HttpEntity(user)
         val response = restTemplate.postForEntity<Unit>("$baseUrl/register", request)
@@ -160,7 +160,7 @@ class IntegrationTestsDB {
     @Test
     fun registerUserInvalidPassword_NoUpperCaseLetter() {
         val baseUrl = "http://localhost:$port/user"
-        val user = RegistrationDTO("testNickname", "password123)", "testEmail@gmail.com")
+        val user = UserRegistrationDTO("testNickname", "password123)", "testEmail@gmail.com")
 
         val request = HttpEntity(user)
         val response = restTemplate.postForEntity<Unit>("$baseUrl/register", request)
@@ -171,7 +171,7 @@ class IntegrationTestsDB {
     @Test
     fun registerUserNotUniqueEmail() {
         val baseUrl = "http://localhost:$port/user"
-        val user = RegistrationDTO("testNicknameUnique", "Password123)", "testEmail2@gmail.com")
+        val user = UserRegistrationDTO("testNicknameUnique", "Password123)", "testEmail2@gmail.com")
 
         val request = HttpEntity(user)
         restTemplate.postForEntity<Unit>("$baseUrl/register", request)
@@ -184,7 +184,7 @@ class IntegrationTestsDB {
     @Test
     fun registerUserNotUniqueNickname() {
         val baseUrl = "http://localhost:$port/user"
-        val user = RegistrationDTO("testNickname2", "Password123)", "testEmailUnique@gmail.com")
+        val user = UserRegistrationDTO("testNickname2", "Password123)", "testEmailUnique@gmail.com")
 
         val request = HttpEntity(user)
         restTemplate.postForEntity<Unit>("$baseUrl/register", request)
@@ -197,7 +197,7 @@ class IntegrationTestsDB {
     @Test
     fun validateUserSuccessfully(){
         val baseUrl = "http://localhost:$port/user"
-        val user = RegistrationDTO("testNicknameValidate", "Password123)", "testEmailValidate@gmail.com")
+        val user = UserRegistrationDTO("testNicknameValidate", "Password123)", "testEmailValidate@gmail.com")
 
         val request = HttpEntity(user)
         val response = restTemplate.postForEntity<RegistrationToValidate>("$baseUrl/register", request)
@@ -225,7 +225,7 @@ class IntegrationTestsDB {
     @Test
     fun validateUserAfterExpiration() {
         val baseUrl = "http://localhost:$port/user"
-        val user = RegistrationDTO("testNicknameValidateExp", "Password123)", "testEmailValidateExp@gmail.com")
+        val user = UserRegistrationDTO("testNicknameValidateExp", "Password123)", "testEmailValidateExp@gmail.com")
 
         val request = HttpEntity(user)
         val response = restTemplate.postForEntity<RegistrationToValidate>("$baseUrl/register", request)
@@ -245,7 +245,7 @@ class IntegrationTestsDB {
     @Test
     fun validateUserWrongActivationCode_OnlyOne() {
         val baseUrl = "http://localhost:$port/user"
-        val user = RegistrationDTO("testNicknameValidateC", "Password123)", "testEmailValidateC@gmail.com")
+        val user = UserRegistrationDTO("testNicknameValidateC", "Password123)", "testEmailValidateC@gmail.com")
 
         val request = HttpEntity(user)
         val response = restTemplate.postForEntity<RegistrationToValidate>("$baseUrl/register", request)
@@ -259,7 +259,7 @@ class IntegrationTestsDB {
     @Test
     fun validateUserWrongActivationCode_CounterTo0() {
         val baseUrl = "http://localhost:$port/user"
-        val user = RegistrationDTO("testNicknameValidateC0", "Password123)", "testEmailValidateC0@gmail.com")
+        val user = UserRegistrationDTO("testNicknameValidateC0", "Password123)", "testEmailValidateC0@gmail.com")
 
         val request = HttpEntity(user)
         val response = restTemplate.postForEntity<RegistrationToValidate>("$baseUrl/register", request)
@@ -278,7 +278,7 @@ class IntegrationTestsDB {
     @Test
     fun loginWithWrongUsername() {
         val baseUrl = "http://localhost:$port/user"
-        val user = RegistrationDTO("loginNickname", "Password123)", "loginEmail@gmail.com")
+        val user = UserRegistrationDTO("loginNickname", "Password123)", "loginEmail@gmail.com")
 
         val request = HttpEntity(user)
         restTemplate.postForEntity<Unit>("$baseUrl/register", request)
@@ -291,7 +291,7 @@ class IntegrationTestsDB {
     @Test
     fun loginWithWrongPassword() {
         val baseUrl = "http://localhost:$port/user"
-        val user = RegistrationDTO("loginNickname2", "Password123)", "loginEmail2@gmail.com")
+        val user = UserRegistrationDTO("loginNickname2", "Password123)", "loginEmail2@gmail.com")
 
         val request = HttpEntity(user)
         restTemplate.postForEntity<Unit>("$baseUrl/register", request)
@@ -304,7 +304,7 @@ class IntegrationTestsDB {
     @Test
     fun loginWithCorrectData_Inactivated() {
         val baseUrl = "http://localhost:$port/user"
-        val user = RegistrationDTO("loginNickname3", "Password123)", "loginEmail3@gmail.com")
+        val user = UserRegistrationDTO("loginNickname3", "Password123)", "loginEmail3@gmail.com")
 
         val request = HttpEntity(user)
         restTemplate.postForEntity<Unit>("$baseUrl/register", request)
@@ -317,7 +317,7 @@ class IntegrationTestsDB {
     @Test
     fun loginWithCorrectData_Activated() {
         val baseUrl = "http://localhost:$port/user"
-        val user = RegistrationDTO("loginNickname3", "Password123)", "loginEmail3@gmail.com")
+        val user = UserRegistrationDTO("loginNickname3", "Password123)", "loginEmail3@gmail.com")
 
         val request = HttpEntity(user)
         restTemplate.postForEntity<Unit>("$baseUrl/register", request)

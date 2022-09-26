@@ -6,11 +6,15 @@ data class DeviceRegistrationDTO(
 
     @field:NotEmpty
     @field:NotNull
-    val nickname: String,
+    val name: String,
 
     @field:NotEmpty
     @field:NotNull
     @field:Size(min = 8)
-    val password: String
+    val password: String,
+
+    @field:NotEmpty
+    @field:NotNull
+    val zone: String
 )
 

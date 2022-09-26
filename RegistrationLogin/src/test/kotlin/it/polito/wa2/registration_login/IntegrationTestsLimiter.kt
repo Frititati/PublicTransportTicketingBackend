@@ -1,7 +1,7 @@
 package it.polito.wa2.registration_login
 
 import it.polito.wa2.registration_login.controllers.ValidateRegistration
-import it.polito.wa2.registration_login.dtos.RegistrationDTO
+import it.polito.wa2.registration_login.dtos.UserRegistrationDTO
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
@@ -47,7 +47,7 @@ class IntegrationTestsLimiter {
     @Test
     fun rateLimiterRegister() {
         val baseUrl = "http://localhost:$port/user"
-        val user = RegistrationDTO("testRateLimiter", "Password123", "testRateLimiter@gmail.com")
+        val user = UserRegistrationDTO("testRateLimiter", "Password123", "testRateLimiter@gmail.com")
 
         val request = HttpEntity(user)
 

@@ -24,7 +24,6 @@ class SecurityConfiguration(val jwtUtils: JwtUtils) : WebSecurityConfigurerAdapt
         super.configure(auth)
     }
 
-    // TODO: /device/register 403 sempre
     override fun configure(http: HttpSecurity) {
         http
             .csrf().disable()
@@ -42,7 +41,7 @@ class SecurityConfiguration(val jwtUtils: JwtUtils) : WebSecurityConfigurerAdapt
 //PasswordEncoderFactories.createDelegatingPasswordEncoder()
 
     @Bean
-    fun jwtAuthTokenFilter() : JwtAuthenticationTokenFilter {
+    fun jwtAuthTokenFilter(): JwtAuthenticationTokenFilter {
         return JwtAuthenticationTokenFilter(authenticationManager(), jwtUtils)
     }
 

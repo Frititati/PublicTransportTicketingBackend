@@ -1,10 +1,9 @@
 package it.polito.wa2.registration_login.controllers
 
 import it.polito.wa2.registration_login.dtos.DeviceRegistrationDTO
-import it.polito.wa2.registration_login.dtos.RegistrationDTO
+import it.polito.wa2.registration_login.dtos.UserRegistrationDTO
 import it.polito.wa2.registration_login.dtos.ValidateDTO
-import it.polito.wa2.registration_login.services.DeviceService
-import it.polito.wa2.registration_login.services.UserService
+import it.polito.wa2.registration_login.services.RegisterService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
@@ -13,11 +12,11 @@ import org.springframework.web.bind.annotation.RestController
 import java.util.*
 
 @RestController
-class RegistrationEndpoint(val userService: UserService, val deviceService: DeviceService) {
+class RegistrationEndpoint(val registerService: RegisterService) {
 
     @PostMapping("/user/register")
-    fun registerUser(@RequestBody payload: RegistrationDTO): ResponseEntity<RegistrationToValidate> {
-        val registrationStatus: Pair<HttpStatus, UUID?> = userService.register(payload)
+    fun registerUser(@RequestBody payload: UserRegistrationDTO): ResponseEntity<RegistrationToValidate> {
+        val registrationStatus: Pair<HttpStatus, UUID?> = registerService.registerUser(payload)
 
         return if (registrationStatus.first === HttpStatus.ACCEPTED)
             ResponseEntity.status(registrationStatus.first)
@@ -29,19 +28,19 @@ class RegistrationEndpoint(val userService: UserService, val deviceService: Devi
     @PostMapping("/user/validate")
     fun validateUser(@RequestBody payload: ValidateRegistration): ResponseEntity<ValidateDTO> {
         val validationStatus: Pair<HttpStatus, ValidateDTO?> =
-            userService.validate(payload.provisional_id, payload.activation_code)
+            registerService.validate(payload.provisional_id, payload.activation_code)
 
         return ResponseEntity.status(validationStatus.first).body(validationStatus.second)
     }
 
     @PostMapping("/device/register")
-    fun registerDevice(@RequestBody payload: DeviceRegistrationDTO) : ResponseEntity<RegistrationToValidate> {
+    fun registerDevice(@RequestBody payload: DeviceRegistrationDTO): ResponseEntity<DeviceRegistered> {
 
-        val registrationStatus: Pair<HttpStatus, UUID?> = deviceService.registerDevice(payload)
+        val registrationStatus: Pair<HttpStatus, String?> = registerService.registerDevice(payload)
 
         return if (registrationStatus.first === HttpStatus.ACCEPTED)
             ResponseEntity.status(registrationStatus.first)
-                .body(RegistrationToValidate(registrationStatus.second, payload.nickname))
+                .body(DeviceRegistered(registrationStatus.second))
         else
             ResponseEntity.status(registrationStatus.first).body(null)
     }
@@ -49,3 +48,4 @@ class RegistrationEndpoint(val userService: UserService, val deviceService: Devi
 
 data class RegistrationToValidate(val provisional_id: UUID?, val email: String)
 data class ValidateRegistration(val provisional_id: String, val activation_code: Int)
+data class DeviceRegistered(val name: String?)

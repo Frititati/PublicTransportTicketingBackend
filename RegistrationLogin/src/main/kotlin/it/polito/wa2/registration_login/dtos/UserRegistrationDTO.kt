@@ -2,7 +2,7 @@ package it.polito.wa2.registration_login.dtos
 
 import javax.validation.constraints.*
 
-data class RegistrationDTO(
+data class UserRegistrationDTO(
 
     @field:NotEmpty
     @field:NotNull

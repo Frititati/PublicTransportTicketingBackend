@@ -1,6 +1,6 @@
 package it.polito.wa2.registration_login
 
-import it.polito.wa2.registration_login.dtos.RegistrationDTO
+import it.polito.wa2.registration_login.dtos.UserRegistrationDTO
 import it.polito.wa2.registration_login.dtos.ValidateDTO
 import it.polito.wa2.registration_login.entities.Activation
 import it.polito.wa2.registration_login.entities.User
@@ -9,7 +9,7 @@ import it.polito.wa2.registration_login.repositories.UserRepository
 import it.polito.wa2.registration_login.security.Role
 import it.polito.wa2.registration_login.security.SecurityConfiguration
 import it.polito.wa2.registration_login.services.EmailService
-import it.polito.wa2.registration_login.services.UserService
+import it.polito.wa2.registration_login.services.RegisterService
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -22,7 +22,7 @@ import java.util.*
 class UnitTestsBusinessLogic {
 
     @Autowired
-    lateinit var userService: UserService
+    lateinit var registerService: RegisterService
 
     @Autowired
     lateinit var emailService: EmailService
@@ -39,65 +39,65 @@ class UnitTestsBusinessLogic {
 
     @Test
     fun rejectRegisterInvalidPassword_empty() {
-        val user = RegistrationDTO("testPassword", "", "testPassword@gmail.com")
-        Assertions.assertEquals(Pair(HttpStatus.BAD_REQUEST, null), userService.register(user))
+        val user = UserRegistrationDTO("testPassword", "", "testPassword@gmail.com")
+        Assertions.assertEquals(Pair(HttpStatus.BAD_REQUEST, null), registerService.registerUser(user))
     }
 
     @Test
     fun rejectRegisterInvalidPassword_less8Chars() {
-        val user = RegistrationDTO("testPassword", "Pass1)", "testPassword@gmail.com")
-        Assertions.assertEquals(Pair(HttpStatus.BAD_REQUEST, null), userService.register(user))
+        val user = UserRegistrationDTO("testPassword", "Pass1)", "testPassword@gmail.com")
+        Assertions.assertEquals(Pair(HttpStatus.BAD_REQUEST, null), registerService.registerUser(user))
     }
 
     @Test
     fun rejectRegisterInvalidPassword_emptySpace() {
-        val user = RegistrationDTO("testPassword", "Password 123)", "testPassword@gmail.com")
-        Assertions.assertEquals(Pair(HttpStatus.BAD_REQUEST, null), userService.register(user))
+        val user = UserRegistrationDTO("testPassword", "Password 123)", "testPassword@gmail.com")
+        Assertions.assertEquals(Pair(HttpStatus.BAD_REQUEST, null), registerService.registerUser(user))
     }
 
     @Test
     fun rejectRegisterInvalidPassword_noLowerCase() {
-        val user = RegistrationDTO("testPassword", "PASSWORD123)", "testPassword@gmail.com")
-        Assertions.assertEquals(Pair(HttpStatus.BAD_REQUEST, null), userService.register(user))
+        val user = UserRegistrationDTO("testPassword", "PASSWORD123)", "testPassword@gmail.com")
+        Assertions.assertEquals(Pair(HttpStatus.BAD_REQUEST, null), registerService.registerUser(user))
     }
 
     @Test
     fun rejectRegisterInvalidPassword_noUpperCase() {
-        val user = RegistrationDTO("testPassword", "password123)", "testPassword@gmail.com")
-        Assertions.assertEquals(Pair(HttpStatus.BAD_REQUEST, null), userService.register(user))
+        val user = UserRegistrationDTO("testPassword", "password123)", "testPassword@gmail.com")
+        Assertions.assertEquals(Pair(HttpStatus.BAD_REQUEST, null), registerService.registerUser(user))
     }
 
     @Test
     fun rejectRegisterInvalidPassword_noDigits() {
-        val user = RegistrationDTO("testPassword", "Password)", "testPassword@gmail.com")
-        Assertions.assertEquals(Pair(HttpStatus.BAD_REQUEST, null), userService.register(user))
+        val user = UserRegistrationDTO("testPassword", "Password)", "testPassword@gmail.com")
+        Assertions.assertEquals(Pair(HttpStatus.BAD_REQUEST, null), registerService.registerUser(user))
     }
 
     @Test
     fun rejectRegisterInvalidPassword_noSpecialChars() {
-        val user = RegistrationDTO("testPassword", "Password123", "testPassword@gmail.com")
-        Assertions.assertEquals(Pair(HttpStatus.BAD_REQUEST, null), userService.register(user))
+        val user = UserRegistrationDTO("testPassword", "Password123", "testPassword@gmail.com")
+        Assertions.assertEquals(Pair(HttpStatus.BAD_REQUEST, null), registerService.registerUser(user))
     }
 
     @Test
     fun rejectRegisterInvalidEmail_noAt() {
-        val user = RegistrationDTO("testPassword", "Password123)", "testPasswordGmail.com")
-        Assertions.assertEquals(Pair(HttpStatus.BAD_REQUEST, null), userService.register(user))
+        val user = UserRegistrationDTO("testPassword", "Password123)", "testPasswordGmail.com")
+        Assertions.assertEquals(Pair(HttpStatus.BAD_REQUEST, null), registerService.registerUser(user))
     }
 
     @Test
     fun rejectRegisterInvalidEmail_noDomain() {
-        val user = RegistrationDTO("testPassword", "Password123)", "testPassword@gmailcom")
-        Assertions.assertEquals(Pair(HttpStatus.BAD_REQUEST, null), userService.register(user))
+        val user = UserRegistrationDTO("testPassword", "Password123)", "testPassword@gmailcom")
+        Assertions.assertEquals(Pair(HttpStatus.BAD_REQUEST, null), registerService.registerUser(user))
     }
 
     @Test
     fun rejectRegisterNotUniqueNickname() {
-        val userValid = RegistrationDTO("testUser", "Password123)", "testUser1@gmail.com")
-        val userInvalid = RegistrationDTO("testUser", "Password123)", "testUser2@gmail.com")
+        val userValid = UserRegistrationDTO("testUser", "Password123)", "testUser1@gmail.com")
+        val userInvalid = UserRegistrationDTO("testUser", "Password123)", "testUser2@gmail.com")
 
-        val response: Pair<HttpStatus, UUID?> = userService.register(userValid)
-        val invalidResponse: Pair<HttpStatus, UUID?> = userService.register(userInvalid)
+        val response: Pair<HttpStatus, UUID?> = registerService.registerUser(userValid)
+        val invalidResponse: Pair<HttpStatus, UUID?> = registerService.registerUser(userInvalid)
 
         val userId = activationRepository.findById(response.second!!).get().user.id
 
@@ -109,11 +109,11 @@ class UnitTestsBusinessLogic {
 
     @Test
     fun rejectRegisterNotUniqueEmail() {
-        val userValid = RegistrationDTO("testUser1", "Password123)", "testUser@gmail.com")
-        val userInvalid = RegistrationDTO("testUser2", "Password123)", "testUser@gmail.com")
+        val userValid = UserRegistrationDTO("testUser1", "Password123)", "testUser@gmail.com")
+        val userInvalid = UserRegistrationDTO("testUser2", "Password123)", "testUser@gmail.com")
 
-        val response: Pair<HttpStatus, UUID?> = userService.register(userValid)
-        val invalidResponse: Pair<HttpStatus, UUID?> = userService.register(userInvalid)
+        val response: Pair<HttpStatus, UUID?> = registerService.registerUser(userValid)
+        val invalidResponse: Pair<HttpStatus, UUID?> = registerService.registerUser(userInvalid)
 
         val userId = activationRepository.findById(response.second!!).get().user.id
 
@@ -125,9 +125,9 @@ class UnitTestsBusinessLogic {
 
     @Test
     fun acceptRegisterValidUser() {
-        val user = RegistrationDTO("testUser", "Password123)", "testUser@gmail.com")
+        val user = UserRegistrationDTO("testUser", "Password123)", "testUser@gmail.com")
 
-        val response: Pair<HttpStatus, UUID?> = userService.register(user)
+        val response: Pair<HttpStatus, UUID?> = registerService.registerUser(user)
 
         val userId = activationRepository.findById(response.second!!).get().user.id
 
@@ -139,7 +139,7 @@ class UnitTestsBusinessLogic {
 
     @Test
     fun rejectValidationEmpty_uuid() {
-        Assertions.assertEquals(Pair(HttpStatus.NOT_FOUND, null), userService.validate("", 123456))
+        Assertions.assertEquals(Pair(HttpStatus.NOT_FOUND, null), registerService.validate("", 123456))
     }
 
     @Test
@@ -169,7 +169,7 @@ class UnitTestsBusinessLogic {
 
         userRepository.deleteById(user.id!!)
 
-        Assertions.assertEquals(Pair(HttpStatus.NOT_FOUND, null), userService.validate(activation.id.toString(), 0))
+        Assertions.assertEquals(Pair(HttpStatus.NOT_FOUND, null), registerService.validate(activation.id.toString(), 0))
     }
 
     @Test
@@ -197,11 +197,11 @@ class UnitTestsBusinessLogic {
                 )
             )
 
-        userService.validate(activation.id.toString(), 0)
+        registerService.validate(activation.id.toString(), 0)
 
         val activation2: Activation = activationRepository.findById(activation.id!!).get()
 
-        userService.validate(activation.id.toString(), 0)
+        registerService.validate(activation.id.toString(), 0)
         val activation3: Activation = activationRepository.findById(activation.id!!).get()
 
         userRepository.deleteById(user.id!!)
@@ -235,21 +235,21 @@ class UnitTestsBusinessLogic {
                 )
             )
 
-        userService.validate(activation.id.toString(), 0)
+        registerService.validate(activation.id.toString(), 0)
 
         val activation2: Activation = activationRepository.findById(activation.id!!).get()
 
-        userService.validate(activation.id.toString(), 0)
+        registerService.validate(activation.id.toString(), 0)
         val activation3: Activation = activationRepository.findById(activation.id!!).get()
 
-        userService.validate(activation.id.toString(), 0)
+        registerService.validate(activation.id.toString(), 0)
 
         val activation4: Activation = activationRepository.findById(activation.id!!).get()
 
-        userService.validate(activation.id.toString(), 0)
+        registerService.validate(activation.id.toString(), 0)
         val activation5: Activation = activationRepository.findById(activation.id!!).get()
 
-        userService.validate(activation.id.toString(), 0)
+        registerService.validate(activation.id.toString(), 0)
         val activationRowEmpty = activationRepository.findById(activation.id!!)
         val userRowEmpty = userRepository.findById(user.id!!)
 
@@ -286,7 +286,7 @@ class UnitTestsBusinessLogic {
                 )
             )
 
-        userService.validate(activation.id.toString(), activation.activationCode)
+        registerService.validate(activation.id.toString(), activation.activationCode)
 
         val activationRowEmpty = activationRepository.findById(activation.id!!)
         val userRowEmpty = userRepository.findById(user.id!!)
@@ -320,16 +320,16 @@ class UnitTestsBusinessLogic {
                 )
             )
 
-        userService.validate(activation.id.toString(), 0)
+        registerService.validate(activation.id.toString(), 0)
 
-        userService.validate(activation.id.toString(), 0)
+        registerService.validate(activation.id.toString(), 0)
 
-        userService.validate(activation.id.toString(), 0)
+        registerService.validate(activation.id.toString(), 0)
 
-        userService.validate(activation.id.toString(), 0)
+        registerService.validate(activation.id.toString(), 0)
 
         val validationResponse: Pair<HttpStatus, ValidateDTO?> =
-            userService.validate(activation.id.toString(), 0)
+            registerService.validate(activation.id.toString(), 0)
 
         Assertions.assertEquals(HttpStatus.NOT_FOUND, validationResponse.first)
     }
@@ -360,7 +360,7 @@ class UnitTestsBusinessLogic {
             )
 
         val validationResponse: Pair<HttpStatus, ValidateDTO?> =
-            userService.validate(activation.id.toString(), activation.activationCode)
+            registerService.validate(activation.id.toString(), activation.activationCode)
 
         Assertions.assertEquals(HttpStatus.NOT_FOUND, validationResponse.first)
     }
@@ -391,7 +391,7 @@ class UnitTestsBusinessLogic {
             )
 
         val validationResponse: Pair<HttpStatus, ValidateDTO?> =
-            userService.validate(activation.id.toString(), activation.activationCode)
+            registerService.validate(activation.id.toString(), activation.activationCode)
 
         userRepository.deleteById(user.id!!)
 
@@ -426,10 +426,10 @@ class UnitTestsBusinessLogic {
                 )
             )
 
-        userService.validate(activation.id.toString(), 0)
+        registerService.validate(activation.id.toString(), 0)
 
         val validationResponse: Pair<HttpStatus, ValidateDTO?> =
-            userService.validate(activation.id.toString(), activation.activationCode)
+            registerService.validate(activation.id.toString(), activation.activationCode)
 
         userRepository.deleteById(user.id!!)
 
@@ -441,21 +441,21 @@ class UnitTestsBusinessLogic {
 
     @Test
     fun acceptFullRegistrationValidation() {
-        val registrationDTO = RegistrationDTO("testUser", "Password123)", "testUser@gmail.com")
+        val userRegistrationDTO = UserRegistrationDTO("testUser", "Password123)", "testUser@gmail.com")
 
-        val registrationResponse: Pair<HttpStatus, UUID?> = userService.register(registrationDTO)
+        val registrationResponse: Pair<HttpStatus, UUID?> = registerService.registerUser(userRegistrationDTO)
 
         val activation : Activation = activationRepository.findById(registrationResponse.second!!).get()
 
         val validationResponse: Pair<HttpStatus, ValidateDTO?> =
-            userService.validate(activation.id.toString(), activation.activationCode)
+            registerService.validate(activation.id.toString(), activation.activationCode)
 
         userRepository.deleteById(activation.user.id!!)
 
         Assertions.assertEquals(HttpStatus.CREATED, validationResponse.first)
         Assertions.assertEquals(activation.user.id, validationResponse.second!!.userId)
-        Assertions.assertEquals(registrationDTO.email, validationResponse.second!!.email)
-        Assertions.assertEquals(registrationDTO.nickname, validationResponse.second!!.nickname)
+        Assertions.assertEquals(userRegistrationDTO.email, validationResponse.second!!.email)
+        Assertions.assertEquals(userRegistrationDTO.nickname, validationResponse.second!!.nickname)
     }
 
     @Test

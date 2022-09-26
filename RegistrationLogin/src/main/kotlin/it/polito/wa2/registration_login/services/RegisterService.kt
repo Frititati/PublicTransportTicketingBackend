@@ -2,8 +2,10 @@ package it.polito.wa2.registration_login.services
 
 import it.polito.wa2.registration_login.dtos.*
 import it.polito.wa2.registration_login.entities.Activation
+import it.polito.wa2.registration_login.entities.Device
 import it.polito.wa2.registration_login.entities.User
 import it.polito.wa2.registration_login.repositories.ActivationRepository
+import it.polito.wa2.registration_login.repositories.DeviceRepository
 import it.polito.wa2.registration_login.repositories.UserRepository
 import it.polito.wa2.registration_login.security.Role
 import it.polito.wa2.registration_login.security.SecurityConfiguration
@@ -17,7 +19,7 @@ import java.util.*
 
 @Service
 @Transactional
-class UserService {
+class RegisterService {
 
     @Autowired
     lateinit var emailService: EmailService
@@ -29,6 +31,9 @@ class UserService {
     lateinit var userRepository: UserRepository
 
     @Autowired
+    lateinit var deviceRepository: DeviceRepository
+
+    @Autowired
     lateinit var securityConfiguration: SecurityConfiguration
 
     private val specialChar = "[!\"#$%&'()*+,-./:;\\\\<=>?@\\[\\]^_`{|}~]"
@@ -37,7 +42,7 @@ class UserService {
     private val min = 100000
     private val max = 999999
 
-    fun register(user: RegistrationDTO): Pair<HttpStatus, UUID?> {
+    fun registerUser(user: UserRegistrationDTO): Pair<HttpStatus, UUID?> {
         /**
          * 1. username, password, and email address cannot be empty;
          * 2. username and email address must be unique system-wide;
@@ -47,7 +52,11 @@ class UserService {
          */
         return when {
             user.nickname.isEmpty() || user.email.isEmpty() -> Pair(HttpStatus.BAD_REQUEST, null)
-            userRepository.findByNickname(user.nickname)?.nickname?.isNotEmpty() == true -> Pair(HttpStatus.BAD_REQUEST, null)
+            userRepository.findByNickname(user.nickname)?.nickname?.isNotEmpty() == true -> Pair(
+                HttpStatus.BAD_REQUEST,
+                null
+            )
+
             userRepository.findByEmail(user.email)?.email?.isNotEmpty() == true -> Pair(HttpStatus.BAD_REQUEST, null)
             !validatePassword(user.password) -> Pair(HttpStatus.BAD_REQUEST, null)
             !validateEmail(user.email) -> Pair(HttpStatus.BAD_REQUEST, null)
@@ -93,30 +102,37 @@ class UserService {
                 println("Password must not be empty")
                 false
             }
+
             password.length < 8 -> {
                 println("Password must be at least 8 characters long")
                 false
             }
+
             password.contains(" ") -> {
                 println("Password must not contains empty spaces")
                 false
             }
+
             !password.contains("[a-z]".toRegex()) -> {
                 println("Password does not contain any lowercase letters")
                 false
             }
+
             !password.contains("[A-Z]".toRegex()) -> {
                 println("Password does not contain any uppercase letters")
                 false
             }
+
             !password.contains("\\d".toRegex()) -> {
                 println("Password does not contain any digits")
                 false
             }
+
             !password.contains(specialChar.toRegex()) -> {
                 println("Password does not contain any special characters")
                 false
             }
+
             else -> true
         }
     }
@@ -127,6 +143,43 @@ class UserService {
             else -> {
                 println("Invalid email")
                 false
+            }
+        }
+    }
+
+
+    fun registerDevice(device: DeviceRegistrationDTO): Pair<HttpStatus, String?> {
+        /**
+         * 1. username, password, and email address cannot be empty;
+         * 2. username and email address must be unique system-wide;
+         * 3. password must be reasonably strong (it must not contain any whitespace, it must be at least 8 characters long,
+        it must contain at least one digit, one uppercase letter, one lowercase letter, one non-alphanumeric character);
+         * 4. email address must be valid.
+         */
+        return when {
+            device.name.isEmpty() -> Pair(HttpStatus.BAD_REQUEST, null)
+            userRepository.findByNickname(device.name)?.nickname?.isNotEmpty() == true -> Pair(
+                HttpStatus.BAD_REQUEST,
+                null
+            )
+
+            !validatePassword(device.password) -> Pair(HttpStatus.BAD_REQUEST, null)
+            else -> {
+                try {
+                    deviceRepository.save(
+                        Device(
+                            null,
+                            device.name,
+                            securityConfiguration.passwordEncoder().encode(device.password),
+                            device.zone,
+                            Role.DEVICE
+                        )
+                    )
+
+                    Pair(HttpStatus.ACCEPTED, device.name)
+                } catch (e: Exception) {
+                    Pair(HttpStatus.BAD_REQUEST, null)
+                }
             }
         }
     }
