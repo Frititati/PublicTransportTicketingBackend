@@ -12,6 +12,12 @@ group = "it.polito.wa2"
 version = "0.0.1-SNAPSHOT"
 java.sourceCompatibility = JavaVersion.VERSION_11
 
+configurations {
+    compileOnly {
+        extendsFrom(configurations.annotationProcessor.get())
+    }
+}
+
 repositories {
     mavenCentral()
 }
@@ -32,9 +38,9 @@ dependencies {
     implementation("io.r2dbc:r2dbc-postgresql")
     implementation("org.postgresql:postgresql")
     implementation("org.hibernate.validator:hibernate-validator")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
     implementation("com.github.vladimir-bukhtoyarov:bucket4j-core:7.4.0")
+    implementation("ch.qos.logback:logback-core:1.2.11")
     implementation("io.jsonwebtoken:jjwt-api:0.11.2")
 
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.2")
@@ -42,7 +48,6 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql")
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
-
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation ("org.testcontainers:junit-jupiter:1.16.3")

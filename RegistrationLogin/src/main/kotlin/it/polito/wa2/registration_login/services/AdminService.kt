@@ -26,7 +26,7 @@ class AdminService {
                 Pair(HttpStatus.BAD_REQUEST, null)
             }
 
-            userToUpdate.role = Role.ADMIN
+            userToUpdate.role = Role.ADMIN.ordinal
             try {
 
                 userRepository.save(

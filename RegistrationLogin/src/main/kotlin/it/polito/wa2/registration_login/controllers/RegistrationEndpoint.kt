@@ -1,6 +1,7 @@
 package it.polito.wa2.registration_login.controllers
 
 import it.polito.wa2.registration_login.dtos.DeviceRegistrationDTO
+import it.polito.wa2.registration_login.dtos.RegistrationToValidateDTO
 import it.polito.wa2.registration_login.dtos.UserRegistrationDTO
 import it.polito.wa2.registration_login.dtos.ValidateDTO
 import it.polito.wa2.registration_login.services.RegisterService
@@ -15,22 +16,17 @@ import java.util.*
 class RegistrationEndpoint(val registerService: RegisterService) {
 
     @PostMapping("/user/register")
-    suspend fun registerUser(@RequestBody payload: UserRegistrationDTO): ResponseEntity<RegistrationToValidate> {
-        val registrationStatus: Pair<HttpStatus, UUID?> = registerService.registerUser(payload)
+    suspend fun registerUser(@RequestBody payload: UserRegistrationDTO): ResponseEntity<RegistrationToValidateDTO?> {
+        val registrationStatus = registerService.registerUser(payload)
 
-        return if (registrationStatus.first === HttpStatus.ACCEPTED)
-            ResponseEntity.status(registrationStatus.first)
-                .body(RegistrationToValidate(registrationStatus.second, payload.email))
-        else
-            ResponseEntity.status(registrationStatus.first).body(null)
+        return ResponseEntity(registrationStatus.second, registrationStatus.first)
     }
 
     @PostMapping("/user/validate")
     suspend fun validateUser(@RequestBody payload: ValidateRegistration): ResponseEntity<ValidateDTO> {
-        val validationStatus: Pair<HttpStatus, ValidateDTO?> =
-            registerService.validate(payload.provisional_id, payload.activation_code)
+        val validationStatus = registerService.validate(payload.provisional_id, payload.activation_code)
 
-        return ResponseEntity.status(validationStatus.first).body(validationStatus.second)
+        return ResponseEntity(validationStatus.second, validationStatus.first)
     }
 
     @PostMapping("/device/register")
@@ -46,6 +42,5 @@ class RegistrationEndpoint(val registerService: RegisterService) {
     }
 }
 
-data class RegistrationToValidate(val provisional_id: UUID?, val email: String)
 data class ValidateRegistration(val provisional_id: String, val activation_code: Int)
 data class DeviceRegistered(val name: String?)

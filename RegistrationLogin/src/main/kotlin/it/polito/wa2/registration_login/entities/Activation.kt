@@ -7,10 +7,10 @@ import java.time.LocalDateTime
 import java.util.UUID
 
 @Table("activation")
-class Activation(
+data class Activation(
     @Id
     @Column("id")
-    val id: UUID?,
+    var id: UUID?,
     @Column("activation_code")
     val activationCode: Int,
     @Column("deadline")

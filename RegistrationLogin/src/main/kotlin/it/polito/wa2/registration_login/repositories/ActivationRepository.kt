@@ -9,5 +9,5 @@ import java.util.UUID
 interface ActivationRepository : R2dbcRepository<Activation, UUID> {
 
     @Query("select * from activation a where a.deadline < now()")
-    fun findAllExpired() : Flux<List<Activation>>
+    fun findAllExpired() : Flux<Activation>
 }

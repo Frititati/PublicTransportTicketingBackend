@@ -1,15 +1,14 @@
 package it.polito.wa2.registration_login.entities
 
-import it.polito.wa2.registration_login.security.Role
 import org.springframework.data.annotation.Id
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
 
 @Table("users")
-class User(
+data class User(
     @Id
     @Column("id")
-    val id: Long?,
+    var id: Long?,
     @Column("nickname")
     val nickname: String,
     @Column("password")
@@ -17,7 +16,7 @@ class User(
     @Column("email")
     val email: String,
     @Column("role")
-    var role: Role,
+    var role: Int,
     @Column("active")
     var active: Boolean,
 )
