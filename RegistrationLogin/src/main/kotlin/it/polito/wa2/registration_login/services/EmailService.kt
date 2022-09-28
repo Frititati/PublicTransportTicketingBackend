@@ -14,6 +14,14 @@ class EmailService {
     @Autowired
     lateinit var message: SimpleMailMessage
 
+    /**
+     * @param email String: email of the user
+     * @param activationCode Int: code of 6 digits randomly generated
+     *
+     * It sends an email to the user with the activation code to activate his account
+     *
+     * @return True if email is sent successfully, otherwise false
+     */
     fun sendMessage(email: String, activationCode : Int) : Boolean {
         message.setSubject("Confirm your email address")
         message.setText("Your activation code is $activationCode")

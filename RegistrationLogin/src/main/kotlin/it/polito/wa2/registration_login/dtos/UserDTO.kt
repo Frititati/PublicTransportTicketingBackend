@@ -5,7 +5,7 @@ import it.polito.wa2.registration_login.security.Role
 
 data class UserDTO(
     var id: Long?,
-    val nickname: String,
+    val username: String,
     val password: String,
     val email: String,
 
@@ -15,5 +15,5 @@ data class UserDTO(
 )
 
 fun User.toDTO(): UserDTO {
-    return UserDTO(id, nickname, password, email, Role.values()[role], false)
+    return UserDTO(id, username, password, email, Role.values()[role], false)
 }

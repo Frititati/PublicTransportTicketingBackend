@@ -6,6 +6,6 @@ import reactor.core.publisher.Mono
 
 interface UserRepository : R2dbcRepository<User, Long> {
 
-    fun findByNickname(nickname: String) : Mono<User?>
+    fun findByUsername(username: String) : Mono<User?>
     fun findByEmail(email: String) : Mono<User?>
 }

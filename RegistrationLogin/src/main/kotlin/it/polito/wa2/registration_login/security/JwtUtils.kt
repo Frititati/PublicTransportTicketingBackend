@@ -4,7 +4,6 @@ import io.jsonwebtoken.*
 import it.polito.wa2.registration_login.dtos.UserLoggedDTO
 import org.springframework.beans.factory.annotation.Value
 import io.jsonwebtoken.security.*
-import io.jsonwebtoken.security.SignatureException
 import org.springframework.stereotype.Component
 import java.nio.charset.StandardCharsets
 import javax.crypto.SecretKey
@@ -41,7 +40,7 @@ class JwtUtils {
         return try {
             val u = Jwts.parserBuilder().setSigningKey(generatedKey).build().parseClaimsJws(authToken).body.subject
             val role = Jwts.parserBuilder().setSigningKey(generatedKey).build()
-                .parseClaimsJws(authToken).body["roles"].toString()
+                .parseClaimsJws(authToken).body["role"].toString()
             UserLoggedDTO(u, Role.valueOf(role))
 
         } catch (ex: Exception) {

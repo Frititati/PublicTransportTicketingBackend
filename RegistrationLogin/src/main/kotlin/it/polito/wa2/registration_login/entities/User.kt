@@ -9,8 +9,8 @@ data class User(
     @Id
     @Column("id")
     var id: Long?,
-    @Column("nickname")
-    val nickname: String,
+    @Column("username")
+    val username: String,
     @Column("password")
     val password: String,
     @Column("email")

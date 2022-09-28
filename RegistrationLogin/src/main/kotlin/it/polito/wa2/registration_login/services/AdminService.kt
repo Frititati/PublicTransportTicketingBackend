@@ -7,7 +7,6 @@ import kotlinx.coroutines.reactive.awaitLast
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
-import reactor.core.publisher.Mono
 
 @Service
 class AdminService {
@@ -15,8 +14,8 @@ class AdminService {
     @Autowired
     lateinit var userRepository: UserRepository
 
-    suspend fun updateUser(nickname: String): Pair<HttpStatus, UpdatedUserDTO?> {
-        val userToUpdate = userRepository.findByNickname(nickname).awaitLast()
+    suspend fun updateUser(username: String): Pair<HttpStatus, UpdatedUserDTO?> {
+        val userToUpdate = userRepository.findByUsername(username).awaitLast()
 
         return if (userToUpdate != null) {
 

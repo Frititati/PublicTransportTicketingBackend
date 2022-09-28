@@ -9,12 +9,9 @@ import it.polito.wa2.registration_login.repositories.DeviceRepository
 import it.polito.wa2.registration_login.repositories.UserRepository
 import it.polito.wa2.registration_login.security.Role
 import it.polito.wa2.registration_login.security.WebSecurityConfig
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactive.awaitLast
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.scheduling.annotation.Scheduled
@@ -47,6 +44,16 @@ class RegisterService {
     private val min = 100000
     private val max = 999999
 
+    /**
+     * @param user {
+     *                 username: String,
+     *                 email: String,
+     *                 password: String
+     *              }
+     *
+     * @return HttpStatus: 200 OK or 400 error
+     *         RegistrationToValidateDTO: If 200 return provisional_id and email, otherwise null
+     */
     suspend fun registerUser(user: UserRegistrationDTO): Pair<HttpStatus, RegistrationToValidateDTO?> {
         /**
          * 1. username, password, and email address cannot be empty;
@@ -55,10 +62,9 @@ class RegisterService {
         it must contain at least one digit, one uppercase letter, one lowercase letter, one non-alphanumeric character);
          * 4. email address must be valid.
          */
-        // TODO: migliorabile togliendo awaitLast e usando and ecc..
         return when {
-            user.nickname.isEmpty() || user.email.isEmpty() -> Pair(HttpStatus.BAD_REQUEST, null)
-            userRepository.findByNickname(user.nickname).awaitFirstOrNull()?.nickname?.isNotEmpty() == true -> Pair(
+            user.username.isEmpty() || user.email.isEmpty() -> Pair(HttpStatus.BAD_REQUEST, null)
+            userRepository.findByUsername(user.username).awaitFirstOrNull()?.username?.isNotEmpty() == true -> Pair(
                 HttpStatus.BAD_REQUEST,
                 null
             )
@@ -71,11 +77,10 @@ class RegisterService {
 
             else -> {
                 try {
-                    // TODO: it's better to do it in another way transactionally?
                     val userToDB = userRepository.save(
                         User(
                             null,
-                            user.nickname,
+                            user.username,
                             webSecurityConfig.passwordEncoder().encode(user.password),
                             user.email,
                             Role.CUSTOMER.ordinal,
@@ -106,6 +111,12 @@ class RegisterService {
         }
     }
 
+    /**
+     * @param password String ti validate
+     *
+     * @return true if password has at least 8 characters, no empty spaces, an uppercase letter, a lowercase letter,
+     *         a digit and a special character
+     */
     fun validatePassword(password: String): Boolean {
         return when {
             password.isEmpty() -> {
@@ -147,6 +158,12 @@ class RegisterService {
         }
     }
 
+    /**
+     * @param email String to validate
+     *
+     * @return True if the String is formatted as email
+     *         False if it is not formatted in a good way
+     */
     fun validateEmail(email: String): Boolean {
         return when {
             mailChar.toRegex().matches(email) -> true
@@ -157,39 +174,46 @@ class RegisterService {
         }
     }
 
+    /**
+     * @param device {
+     *                  name: String
+     *                  password: String
+     *                  zone: String
+     *               }
+     *
+     * @return HttpStatus 200 OK or 400 error
+     *         The name of the created device if everything is OK (200) otherwise null
+     */
     @Transactional
-    suspend fun registerDevice(device: DeviceRegistrationDTO): Pair<HttpStatus, String?> {
+    suspend fun registerDevice(device: DeviceRegistrationDTO): Pair<HttpStatus, DeviceRegisteredDTO?> {
         /**
-         * 1. username, password, and email address cannot be empty;
-         * 2. username and email address must be unique system-wide;
+         * 1. username, password, and zone cannot be empty;
+         * 2. username must be unique system-wide;
          * 3. password must be reasonably strong (it must not contain any whitespace, it must be at least 8 characters long,
         it must contain at least one digit, one uppercase letter, one lowercase letter, one non-alphanumeric character);
-         * 4. email address must be valid.
          */
         return when {
             device.name.isEmpty() -> Pair(HttpStatus.BAD_REQUEST, null)
-            userRepository.findByNickname(device.name).awaitLast()?.nickname?.isNotEmpty() == true -> Pair(
+            deviceRepository.findByName(device.name).awaitFirstOrNull()?.name?.isNotEmpty() == true -> Pair(
                 HttpStatus.BAD_REQUEST,
                 null
             )
 
-            !withContext(Dispatchers.IO) {
-                validatePassword(device.password)
-            } -> Pair(HttpStatus.BAD_REQUEST, null)
+            !validatePassword(device.password) -> Pair(HttpStatus.BAD_REQUEST, null)
 
             else -> {
                 try {
-                    deviceRepository.save(
+                    val deviceRow = deviceRepository.save(
                         Device(
                             null,
                             device.name,
                             webSecurityConfig.passwordEncoder().encode(device.password),
-                            device.zone,
-                            Role.DEVICE
+                            device.zone
                         )
                     ).awaitLast()
 
-                    Pair(HttpStatus.ACCEPTED, device.name)
+                    val deviceDTO = deviceRow.toDTO()
+                    Pair(HttpStatus.ACCEPTED, DeviceRegisteredDTO(deviceDTO.id!!, deviceDTO.name, device.zone))
                 } catch (e: Exception) {
                     Pair(HttpStatus.BAD_REQUEST, null)
                 }
@@ -197,6 +221,13 @@ class RegisterService {
         }
     }
 
+    /**
+     * @param provisional_id String with UUID provided to the user
+     * @param activation_code Int with the activation_code provided by email to the user
+     *
+     * @return HttpStatus 200 OK or 404 error
+     *         userId, nickname and email if everything is OK, otherwise null
+     */
     suspend fun validate(provisional_id: String, activation_code: Int): Pair<HttpStatus, ValidateDTO?> {
 
         try {
@@ -206,10 +237,9 @@ class RegisterService {
 
                 // if expiration < now() -> delete rows from db + 404
                 if (activationDTO.deadline.isBefore(LocalDateTime.now())) {
-                    activationRepository.deleteById(UUID.fromString(provisional_id)).awaitLast()
                     activationDTO.userId.let { user ->
                         if (user != null) {
-                            userRepository.deleteById(user).block()
+                            userRepository.deleteById(user).subscribe()
                         }
                     }
                     return Pair(HttpStatus.NOT_FOUND, null)
@@ -217,8 +247,7 @@ class RegisterService {
                     // if provisional_id ok but wrong activation_code -> counter-1 + 404
                     if (activationDTO.counter == 1) {
                         // if counter == 0 -> 404 + delete rows from db
-                        activationRepository.deleteById(UUID.fromString(provisional_id)).awaitLast()
-                        activationDTO.userId?.let { user -> userRepository.deleteById(user).block() }
+                        activationDTO.userId?.let { user -> userRepository.deleteById(user).subscribe() }
 
                     } else {
                         //counter - 1
@@ -239,7 +268,7 @@ class RegisterService {
                         .awaitLast()
 
                     val userDTO = userRow.toDTO()
-                    return Pair(HttpStatus.CREATED, ValidateDTO(userDTO.id!!, userDTO.nickname, userDTO.email))
+                    return Pair(HttpStatus.CREATED, ValidateDTO(userDTO.id!!, userDTO.username, userDTO.email))
                 }
             } ?: return Pair(HttpStatus.NOT_FOUND, null)
 
@@ -249,24 +278,25 @@ class RegisterService {
 
     }
 
-    //TODO: Verificare se funziona
+    /**
+     * Scheduled task to check periodically if there are users with expired date that still not activate the account.
+     * In this case, the account will be eliminated to the database, as well as the row on the activation table.
+     */
     @Scheduled(fixedDelay = 20000)
     fun registrationScheduledCleanup() {
         runBlocking {
-            activationRepository.findAllExpired().mapNotNull {
-                println("ciao")
-                it.userId?.let { it1 ->
-
-                    userRepository.deleteById(it1).thenReturn(it1).awaitLast() //TODO il problema è qui
-                    println("ciao4")
-
+            activationRepository.findAllExpired()
+                .mapNotNull {
+                    it.userId?.let { it1 ->
+                        userRepository.deleteById(it1).subscribe()
+                    }
+                    println("Removed expired user")
+                //}.doFinally {
+                //    println("select * from activation a where a.deadline < now()")
                 }
-            }.awaitLast()
-            println("ciao2")
+                .subscribe()
         }
-        println("ciao3")
     }
-
 }
 
 
