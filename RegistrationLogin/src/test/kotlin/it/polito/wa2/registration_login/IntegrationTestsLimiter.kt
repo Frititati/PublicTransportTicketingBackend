@@ -1,6 +1,6 @@
 package it.polito.wa2.registration_login
 
-import it.polito.wa2.registration_login.controllers.ValidateRegistration
+import it.polito.wa2.registration_login.dtos.ValidateRegistrationDTO
 import it.polito.wa2.registration_login.dtos.UserRegistrationDTO
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -31,10 +31,10 @@ class IntegrationTestsLimiter {
         @JvmStatic
         @DynamicPropertySource
         fun properties(registry: DynamicPropertyRegistry) {
-            registry.add("spring.datasource.url", postgres::getJdbcUrl)
-            registry.add("spring.datasource.username", postgres::getUsername)
-            registry.add("spring.datasource.password", postgres::getPassword)
-            registry.add("spring.jpa.hibernate.ddl-auto") { "create-drop" }
+            registry.add("spring.r2dbc.url", postgres::getJdbcUrl)
+            registry.add("spring.r2dbc.username", postgres::getUsername)
+            registry.add("spring.r2dbc.password", postgres::getPassword)
+            //registry.add("spring.jpa.hibernate.ddl-auto") { "create-drop" }
         }
     }
 
@@ -63,7 +63,7 @@ class IntegrationTestsLimiter {
     fun rateLimiterValidate() {
         val baseUrl = "http://localhost:$port/user"
 
-        val request = HttpEntity(ValidateRegistration(UUID.randomUUID().toString(), 1))
+        val request = HttpEntity(ValidateRegistrationDTO(UUID.randomUUID().toString(), 1))
 
         var response : ResponseEntity<Unit>? = null
         for(i in 1..15) {

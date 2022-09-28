@@ -1,7 +1,7 @@
 package it.polito.wa2.registration_login
 
-import it.polito.wa2.registration_login.controllers.RegistrationToValidate
-import it.polito.wa2.registration_login.controllers.ValidateRegistration
+import it.polito.wa2.registration_login.dtos.RegistrationToValidateDTO
+import it.polito.wa2.registration_login.dtos.ValidateRegistrationDTO
 import it.polito.wa2.registration_login.dtos.LoginDTO
 import it.polito.wa2.registration_login.dtos.UserRegistrationDTO
 import it.polito.wa2.registration_login.repositories.ActivationRepository
@@ -36,10 +36,10 @@ class IntegrationTestsDB {
         @JvmStatic
         @DynamicPropertySource
         fun properties(registry: DynamicPropertyRegistry) {
-            registry.add("spring.datasource.url", postgres::getJdbcUrl)
-            registry.add("spring.datasource.username", postgres::getUsername)
-            registry.add("spring.datasource.password", postgres::getPassword)
-            registry.add("spring.jpa.hibernate.ddl-auto") { "create-drop" }
+            registry.add("spring.r2dbc.url", IntegrationTestsLimiter.postgres::getJdbcUrl)
+            registry.add("spring.r2dbc.username", IntegrationTestsLimiter.postgres::getUsername)
+            registry.add("spring.r2dbc.password", IntegrationTestsLimiter.postgres::getPassword)
+            //registry.add("spring.jpa.hibernate.ddl-auto") { "create-drop" }
         }
     }
 
@@ -200,11 +200,11 @@ class IntegrationTestsDB {
         val user = UserRegistrationDTO("testNicknameValidate", "Password123)", "testEmailValidate@gmail.com")
 
         val request = HttpEntity(user)
-        val response = restTemplate.postForEntity<RegistrationToValidate>("$baseUrl/register", request)
+        val response = restTemplate.postForEntity<RegistrationToValidateDTO>("$baseUrl/register", request)
 
-        val activationCode = activationRepository.findById(response.body?.provisional_id!!).get().activationCode
+        val activationCode = activationRepository.findById(response.body?.provisional_id!!).block()?.activationCode
 
-        val requestValidate = HttpEntity(ValidateRegistration(response.body?.provisional_id!!.toString(), activationCode))
+        val requestValidate = HttpEntity(ValidateRegistrationDTO(response.body?.provisional_id!!.toString(), activationCode!!))
 
         val responseValidate = restTemplate.postForEntity<Unit>("$baseUrl/validate", requestValidate)
         assert(responseValidate.statusCode == HttpStatus.CREATED)
@@ -215,7 +215,7 @@ class IntegrationTestsDB {
     fun validateUserWrongUUID() {
         val baseUrl = "http://localhost:$port/user"
 
-        val requestValidate = HttpEntity(ValidateRegistration(UUID.randomUUID().toString(), 123))
+        val requestValidate = HttpEntity(ValidateRegistrationDTO(UUID.randomUUID().toString(), 123))
 
         val responseValidate = restTemplate.postForEntity<Unit>("$baseUrl/validate", requestValidate)
         assert(responseValidate.statusCode == HttpStatus.NOT_FOUND)
@@ -228,15 +228,15 @@ class IntegrationTestsDB {
         val user = UserRegistrationDTO("testNicknameValidateExp", "Password123)", "testEmailValidateExp@gmail.com")
 
         val request = HttpEntity(user)
-        val response = restTemplate.postForEntity<RegistrationToValidate>("$baseUrl/register", request)
+        val response = restTemplate.postForEntity<RegistrationToValidateDTO>("$baseUrl/register", request)
 
-        val activationRow = activationRepository.findById(response.body?.provisional_id!!).get()
+        val activationRow = activationRepository.findById(response.body?.provisional_id!!).block()
 
-        activationRow.deadline = LocalDateTime.now().minusDays(1)
+        activationRow!!.deadline = LocalDateTime.now().minusDays(1)
 
-        activationRepository.save(activationRow)
+        activationRepository.save(activationRow).block()
 
-        val requestValidate = HttpEntity(ValidateRegistration(response.body?.provisional_id!!.toString(), activationRow.activationCode))
+        val requestValidate = HttpEntity(ValidateRegistrationDTO(response.body?.provisional_id!!.toString(), activationRow.activationCode))
 
         val responseValidate = restTemplate.postForEntity<Unit>("$baseUrl/validate", requestValidate)
         assert(responseValidate.statusCode == HttpStatus.NOT_FOUND)
@@ -248,9 +248,9 @@ class IntegrationTestsDB {
         val user = UserRegistrationDTO("testNicknameValidateC", "Password123)", "testEmailValidateC@gmail.com")
 
         val request = HttpEntity(user)
-        val response = restTemplate.postForEntity<RegistrationToValidate>("$baseUrl/register", request)
+        val response = restTemplate.postForEntity<RegistrationToValidateDTO>("$baseUrl/register", request)
 
-        val requestValidate = HttpEntity(ValidateRegistration(response.body?.provisional_id!!.toString(), 1))
+        val requestValidate = HttpEntity(ValidateRegistrationDTO(response.body?.provisional_id!!.toString(), 1))
 
         val responseValidate = restTemplate.postForEntity<Unit>("$baseUrl/validate", requestValidate)
         assert(responseValidate.statusCode == HttpStatus.NOT_FOUND)
@@ -262,9 +262,9 @@ class IntegrationTestsDB {
         val user = UserRegistrationDTO("testNicknameValidateC0", "Password123)", "testEmailValidateC0@gmail.com")
 
         val request = HttpEntity(user)
-        val response = restTemplate.postForEntity<RegistrationToValidate>("$baseUrl/register", request)
+        val response = restTemplate.postForEntity<RegistrationToValidateDTO>("$baseUrl/register", request)
 
-        val requestValidate = HttpEntity(ValidateRegistration(response.body?.provisional_id!!.toString(), 1))
+        val requestValidate = HttpEntity(ValidateRegistrationDTO(response.body?.provisional_id!!.toString(), 1))
 
         var responseValidate : ResponseEntity<Unit>? = null
         for(i in 1..5) {
@@ -296,7 +296,7 @@ class IntegrationTestsDB {
         val request = HttpEntity(user)
         restTemplate.postForEntity<Unit>("$baseUrl/register", request)
 
-        val response = restTemplate.postForEntity<Unit>("$baseUrl/login", LoginDTO(user.nickname, ""))
+        val response = restTemplate.postForEntity<Unit>("$baseUrl/login", LoginDTO(user.username, ""))
 
         assert(response.statusCode == HttpStatus.BAD_REQUEST)
     }
@@ -309,7 +309,7 @@ class IntegrationTestsDB {
         val request = HttpEntity(user)
         restTemplate.postForEntity<Unit>("$baseUrl/register", request)
 
-        val response = restTemplate.postForEntity<Unit>("$baseUrl/login", LoginDTO(user.nickname, user.password))
+        val response = restTemplate.postForEntity<Unit>("$baseUrl/login", LoginDTO(user.username, user.password))
 
         assert(response.statusCode == HttpStatus.BAD_REQUEST)
     }
@@ -322,15 +322,15 @@ class IntegrationTestsDB {
         val request = HttpEntity(user)
         restTemplate.postForEntity<Unit>("$baseUrl/register", request)
 
-        val dbUser = userRepository.findByNickname(user.nickname)
+        val dbUser = userRepository.findByUsername(user.username).block()
 
         dbUser?.id?.let {
-            val db = userRepository.findById(it).get()
-            db.active = true
-            userRepository.save(db)
+            val db = userRepository.findById(it).block()
+            db?.active = true
+            userRepository.save(db!!)
         }
 
-        val response = restTemplate.postForEntity<String>("$baseUrl/login", LoginDTO(user.nickname, user.password))
+        val response = restTemplate.postForEntity<String>("$baseUrl/login", LoginDTO(user.username, user.password))
 
         assert(response.statusCode == HttpStatus.OK)
     }

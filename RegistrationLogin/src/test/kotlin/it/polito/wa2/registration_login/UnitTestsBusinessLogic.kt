@@ -445,7 +445,7 @@ class UnitTestsBusinessLogic {
 
         val registrationResponse: Pair<HttpStatus, UUID?> = registerService.registerUser(userRegistrationDTO)
 
-        val activation : Activation = activationRepository.findById(registrationResponse.second!!).get()
+        val activation: Activation = activationRepository.findById(registrationResponse.second!!).get()
 
         val validationResponse: Pair<HttpStatus, ValidateDTO?> =
             registerService.validate(activation.id.toString(), activation.activationCode)
