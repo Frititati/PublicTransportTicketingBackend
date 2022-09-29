@@ -50,8 +50,9 @@ dependencies {
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation ("org.testcontainers:junit-jupiter:1.16.3")
-    testImplementation("org.testcontainers:postgresql:1.16.3")
+    testImplementation ("org.testcontainers:junit-jupiter:1.17.3")
+    testImplementation("org.testcontainers:postgresql:1.17.3")
+    testImplementation("org.testcontainers:r2dbc:1.17.3")
     //testImplementation("org.springframework.kafka:spring-kafka-test")
 }
 

@@ -12,7 +12,7 @@ import java.time.Duration
 @Component
 class RateLimiterInterceptor : WebFilter {
 
-    private final val limit : Bandwidth = Bandwidth.classic(10, Refill.greedy(10, Duration.ofSeconds(1)))
+    private final val limit: Bandwidth = Bandwidth.classic(10, Refill.greedy(10, Duration.ofSeconds(1)))
     val tokenBucket: Bucket = Bucket.builder().addLimit(limit).build()
 
     override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
@@ -22,9 +22,14 @@ class RateLimiterInterceptor : WebFilter {
             exchange.response.headers.add("X-Rate-Limit-Remaining", probe.remainingTokens.toString())
             chain.filter(exchange)
         } else {
-            //TODO: check if work correctly
-            exchange.response.statusCode = HttpStatus.TOO_MANY_REQUESTS
-            chain.filter(exchange)
+            val path = exchange.request.uri.path
+            if (path.startsWith("/user")) {
+                chain.filter(exchange)
+            } else {
+                exchange.response.statusCode = HttpStatus.TOO_MANY_REQUESTS
+                exchange.response.setComplete()
+            }
         }
+
     }
 }

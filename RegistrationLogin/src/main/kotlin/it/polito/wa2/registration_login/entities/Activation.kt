@@ -19,6 +19,4 @@ data class Activation(
     var counter: Int,
     @Column("user_id")
     val userId: Long?
-    //TODO: use @ReadingConverter on OneToOne relationship using
-    // val user : User
 )
