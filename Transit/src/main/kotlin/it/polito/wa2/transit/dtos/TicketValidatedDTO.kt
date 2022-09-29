@@ -9,3 +9,4 @@ data class TicketValidatedDTO(var id: Long?, val ticketId : UUID, val validation
 fun TicketValidated.toDTO(): TicketValidatedDTO {
     return TicketValidatedDTO(id, ticketId, validationDate, zid)
 }
+

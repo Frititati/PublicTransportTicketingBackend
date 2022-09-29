@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import io.jsonwebtoken.security.*
+import it.polito.wa2.transit.dtos.TimeReportDTO
 import it.polito.wa2.transit.dtos.toDTO
 import it.polito.wa2.transit.entities.TicketValidated
 import it.polito.wa2.transit.repositories.TicketValidatedRepository
@@ -22,7 +23,10 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import reactor.core.publisher.Flux
 import java.nio.charset.StandardCharsets
+import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import java.util.*
 import javax.crypto.SecretKey
 
@@ -84,38 +88,42 @@ class TransitService {
         return Pair(HttpStatus.BAD_REQUEST, null)
     }
 
-    @GetMapping("/admin/transit")
-    suspend fun getTransit(): ResponseEntity<List<UserOrdersDTO?>> {
-        val result = transitService.usersWithOrders(null)
-        return ResponseEntity(result.second, result.first)
+    suspend fun getAllTransit(): Pair<HttpStatus, Flux<TicketValidatedDTO>>{
+        return try {
+            Pair(HttpStatus.OK, ticketValidatedRepository.findAll().map { it.toDTO() })
+        } catch (e: Exception) {
+            Pair(HttpStatus.BAD_REQUEST, Flux.empty())
+        }
     }
 
-    /**
-     * @param userId : id of the user you want to see
-     * Get orders of a specific user
-     */
-    @GetMapping("/admin/transit/{zid}")
-    suspend fun getTransitByZone(@PathVariable userId: String): ResponseEntity<Flux<OrderDTO>> {
-        val result = transitService.getUserOrders(userId, null)
-        return ResponseEntity(result.second, result.first)
+    suspend fun getAllTransitByZone(zid: String): Pair<HttpStatus, Flux<TicketValidatedDTO>>{
+        return try {
+            Pair(HttpStatus.OK, ticketValidatedRepository.findTicketValidatedByZid(zid).map { it.toDTO() })
+        } catch (e: Exception) {
+            Pair(HttpStatus.BAD_REQUEST, Flux.empty())
+        }
     }
 
-    /**
-     * Get list of users with their orders on a selectable time period
-     */
-    @PostMapping("/admin/transit/")
-    suspend fun getTransitWithOrdersTimePeriod(@RequestBody timeReport : TimeReportDTO) : ResponseEntity<List<UserOrdersDTO?>> {
-        val result = transitService.usersWithOrders(timeReport)
-        return ResponseEntity(result.second, result.first)
+    suspend fun getAllTransitByTimePeriod(timeReport: TimeReportDTO): Pair<HttpStatus, Flux<TicketValidatedDTO>>{
+        return try {
+            val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+            val startDate = LocalDate.parse(timeReport.initialDate, dateFormatter)
+            var startDateTime = LocalDateTime.of(startDate, LocalTime.of(0, 0))
+            val endDate = LocalDate.parse(timeReport.finalDate, dateFormatter)
+            var endDateTime = LocalDateTime.of(endDate, LocalTime.of(23, 59))
+            if (startDateTime.isAfter(endDateTime)) {
+                val a = startDateTime
+                startDateTime = endDateTime
+                endDateTime = a
+            }
+            Pair(HttpStatus.OK, ticketValidatedRepository.findTicketValidatedByPurchaseDateGreaterThanEqualAndPurchaseDateLessThanEqual(startDateTime, endDateTime).map { it.toDTO() })
+        } catch (e: Exception) {
+            Pair(HttpStatus.BAD_REQUEST, Flux.empty())
+        }
     }
 
-    /**
-     * @param userId : id of the user you want to see
-     * Get orders of a specific user on a selectable time period
-     */
-    @PostMapping("/admin/transit/{zid}/orders")
-    suspend fun getUserOrdersTimePeriod(@PathVariable userId: String, @RequestBody timeReport: TimeReportDTO) : ResponseEntity<Flux<OrderDTO>> {
-        val result = transitService.getUserOrders(userId, timeReport)
-        return ResponseEntity(result.second, result.first)
+    suspend fun getAllTransitByNicknameAndTimePeriod(nickname: String, timeReport: TimeReportDTO): Pair<HttpStatus, Flux<TicketValidatedDTO>>{
+        return Pair(HttpStatus.BAD_REQUEST, Flux.empty())
     }
+
 }
