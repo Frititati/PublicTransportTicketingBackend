@@ -4,17 +4,17 @@ import javax.validation.constraints.*
 
 data class DeviceRegistrationDTO(
 
-    @field:NotEmpty
-    @field:NotNull
+    @get:NotEmpty(message = "Name cannot be empty")
+    @get:NotNull(message = "Name cannot be null")
     val name: String,
 
-    @field:NotEmpty
-    @field:NotNull
-    @field:Size(min = 8)
+    @get:NotEmpty(message = "Password cannot be empty")
+    @get:NotNull(message = "Password cannot be null")
+    @get:Size(min = 8, message = "Password have at least 8 characters")
     val password: String,
 
-    @field:NotEmpty
-    @field:NotNull
+    @get:NotEmpty(message = "Zone cannot be empty")
+    @get:NotNull(message = "Zone cannot be null")
     val zone: String
 )
 

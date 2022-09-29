@@ -3,10 +3,12 @@ package it.polito.wa2.registration_login.services
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys
 import it.polito.wa2.registration_login.dtos.LoginDTO
+import it.polito.wa2.registration_login.dtos.LoginJWTDTO
 import it.polito.wa2.registration_login.repositories.DeviceRepository
 import it.polito.wa2.registration_login.repositories.UserRepository
 import it.polito.wa2.registration_login.security.Role
-import it.polito.wa2.registration_login.security.SecurityConfiguration
+import it.polito.wa2.registration_login.security.WebSecurityConfig
+import kotlinx.coroutines.reactive.awaitLast
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
@@ -27,47 +29,65 @@ class LoginService {
     lateinit var deviceRepository: DeviceRepository
 
     @Autowired
-    lateinit var securityConfiguration: SecurityConfiguration
+    lateinit var webSecurityConfig: WebSecurityConfig
 
     @Value("\${application.registration_loginKey}")
     lateinit var secretString: String
 
-    fun loginUser(credentials: LoginDTO): Pair<HttpStatus, String?> {
+    /**
+     * @param credentials {
+     *                      username: String
+     *                      password: String
+     *                    }
+     *
+     * @return HttpStatus 200 OK or 400 error
+     *         jwt for user if everything is ok, otherwise null
+     */
+    suspend fun loginUser(credentials: LoginDTO): Pair<HttpStatus, LoginJWTDTO?> {
 
-        val user = userRepository.findByNickname(credentials.username)
+        val user = userRepository.findByUsername(credentials.username).awaitLast()
 
-        return if (user?.nickname?.isNotEmpty() == true) {
+        return if (user?.username?.isNotEmpty() == true) {
             val userPassword = user.password
             val userActive = user.active
-            if (securityConfiguration.passwordEncoder().matches(credentials.password, userPassword) && userActive) {
+            if (webSecurityConfig.passwordEncoder().matches(credentials.password, userPassword) && userActive) {
 
 
                 val generatedKey: SecretKey = Keys.hmacShaKeyFor(secretString.toByteArray(StandardCharsets.UTF_8))
 
                 val jwt = Jwts.builder()
-                    .setSubject(user.nickname)
+                    .setSubject(user.username)
                     .setExpiration(
                         Date.from(
                             LocalDateTime.now().plusHours(1).atZone(ZoneId.systemDefault()).toInstant()
                         )
                     )
                     .setIssuedAt(Date.from(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant()))
-                    .claim("role", user.role)
+                    .claim("role", Role.values()[user.role])
                     .signWith(generatedKey)
                     .compact()
 
-                Pair(HttpStatus.OK, jwt)
+                Pair(HttpStatus.OK, LoginJWTDTO(jwt))
             } else Pair(HttpStatus.BAD_REQUEST, null)
         } else Pair(HttpStatus.BAD_REQUEST, null)
     }
 
-    fun loginDevice(credentials: LoginDTO): Pair<HttpStatus, String?> {
+    /**
+     * @param credentials {
+     *                      username: String
+     *                      password: String
+     *                    }
+     *
+     * @return HttpStatus 200 OK or 400 error
+     *         jwt for device if everything is ok, otherwise null
+     */
+    suspend fun loginDevice(credentials: LoginDTO): Pair<HttpStatus, LoginJWTDTO?> {
 
-        val device = deviceRepository.findByName(credentials.username)
+        val device = deviceRepository.findByName(credentials.username).awaitLast()
 
         return if (device?.name?.isNotEmpty() == true) {
             val userPassword = device.password
-            if (securityConfiguration.passwordEncoder().matches(credentials.password, userPassword)) {
+            if (webSecurityConfig.passwordEncoder().matches(credentials.password, userPassword)) {
 
                 val generatedKey: SecretKey = Keys.hmacShaKeyFor(secretString.toByteArray(StandardCharsets.UTF_8))
 
@@ -84,7 +104,7 @@ class LoginService {
                     .signWith(generatedKey)
                     .compact()
 
-                Pair(HttpStatus.OK, jwt)
+                Pair(HttpStatus.OK, LoginJWTDTO(jwt))
             } else Pair(HttpStatus.BAD_REQUEST, null)
         } else Pair(HttpStatus.BAD_REQUEST, null)
     }

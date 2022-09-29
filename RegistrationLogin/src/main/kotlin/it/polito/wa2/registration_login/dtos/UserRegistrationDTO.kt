@@ -4,17 +4,17 @@ import javax.validation.constraints.*
 
 data class UserRegistrationDTO(
 
-    @field:NotEmpty
-    @field:NotNull
-    val nickname: String,
+    @get:NotEmpty(message = "Username cannot be empty")
+    @get:NotNull(message = "Username cannot be null")
+    var username: String,
 
-    @field:NotEmpty
-    @field:NotNull
-    @field:Size(min = 8)
-    val password: String,
+    @get:NotEmpty(message = "Password cannot be empty")
+    @get:NotNull(message = "Password cannot be null")
+    @get:Size(min = 8, message = "Password must have at least 8 characters")
+    var password: String,
 
-    @field:NotEmpty
-    @field:NotNull
-    @field:Email
-    val email: String
+    @get:NotEmpty(message = "Email cannot be empty")
+    @get:NotNull(message = "Email cannot be null")
+    @get:Email(message = "Email must be in email format")
+    var email: String
 )

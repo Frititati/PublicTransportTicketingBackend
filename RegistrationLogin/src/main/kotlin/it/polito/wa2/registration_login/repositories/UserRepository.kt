@@ -1,12 +1,11 @@
 package it.polito.wa2.registration_login.repositories
 
 import it.polito.wa2.registration_login.entities.User
-import org.springframework.data.repository.CrudRepository
-import org.springframework.stereotype.Repository
+import org.springframework.data.r2dbc.repository.R2dbcRepository
+import reactor.core.publisher.Mono
 
-@Repository
-interface UserRepository : CrudRepository <User, Long> {
+interface UserRepository : R2dbcRepository<User, Long> {
 
-    fun findByNickname(nickname: String) : User?
-    fun findByEmail(email: String) : User?
+    fun findByUsername(username: String) : Mono<User?>
+    fun findByEmail(email: String) : Mono<User?>
 }

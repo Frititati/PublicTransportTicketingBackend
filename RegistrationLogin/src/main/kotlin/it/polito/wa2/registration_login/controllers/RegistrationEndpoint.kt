@@ -1,51 +1,72 @@
 package it.polito.wa2.registration_login.controllers
 
-import it.polito.wa2.registration_login.dtos.DeviceRegistrationDTO
-import it.polito.wa2.registration_login.dtos.UserRegistrationDTO
-import it.polito.wa2.registration_login.dtos.ValidateDTO
+import it.polito.wa2.registration_login.dtos.*
 import it.polito.wa2.registration_login.services.RegisterService
-import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
-import java.util.*
+import javax.validation.Valid
 
 @RestController
 class RegistrationEndpoint(val registerService: RegisterService) {
 
+    /**
+     * @param payload {
+     *                   username: String
+     *                   password: String (at least 8 characters, no empty spaces, one uppercase letter,
+     *                                     one lowercase letter, a special character and a digit)
+     *                   email: String (email format)
+     *                }
+     *
+     *  If username and email are not already used, it creates a new user
+     *
+     *  @return provisional_id and email as JSON
+     *  Also, it sends to the user a mail with the activation_code
+     *  The account is still not active
+     */
     @PostMapping("/user/register")
-    fun registerUser(@RequestBody payload: UserRegistrationDTO): ResponseEntity<RegistrationToValidate> {
-        val registrationStatus: Pair<HttpStatus, UUID?> = registerService.registerUser(payload)
-
-        return if (registrationStatus.first === HttpStatus.ACCEPTED)
-            ResponseEntity.status(registrationStatus.first)
-                .body(RegistrationToValidate(registrationStatus.second, payload.email))
-        else
-            ResponseEntity.status(registrationStatus.first).body(null)
+    suspend fun registerUser(@RequestBody @Valid payload: UserRegistrationDTO): ResponseEntity<RegistrationToValidateDTO?> {
+        val registrationStatus = registerService.registerUser(payload)
+        return ResponseEntity(registrationStatus.second, registrationStatus.first)
     }
 
+    /**
+     * @param payload {
+     *                   provisional_id : String (UUID)
+     *                   activation_code : Int (6 digits)
+     *                }
+     *
+     *  If provisional_id and activation_code are correct, the user will be activated,
+     *
+     *  @return user_id, username and email
+     *
+     *  User have 5 attempts to insert the right activation_code, otherwise the account will be eliminated
+     */
     @PostMapping("/user/validate")
-    fun validateUser(@RequestBody payload: ValidateRegistration): ResponseEntity<ValidateDTO> {
-        val validationStatus: Pair<HttpStatus, ValidateDTO?> =
-            registerService.validate(payload.provisional_id, payload.activation_code)
+    suspend fun validateUser(@RequestBody @Valid payload: ValidateRegistrationDTO): ResponseEntity<ValidateDTO> {
+        val validationStatus = registerService.validate(payload.provisional_id, payload.activation_code)
 
-        return ResponseEntity.status(validationStatus.first).body(validationStatus.second)
+        return ResponseEntity(validationStatus.second, validationStatus.first)
     }
 
+    /**
+     * @param payload {
+     *                  name: String
+     *                  password: String (at least 8 characters, no empty spaces, one uppercase letter,
+     *                                     one lowercase letter, a special character and a digit)
+     *                  zone: String
+     *                }
+     *
+     *  If the user is logged as admin, it creates a device
+     *
+     *  @return name of the device created by the admin
+     */
     @PostMapping("/device/register")
-    fun registerDevice(@RequestBody payload: DeviceRegistrationDTO): ResponseEntity<DeviceRegistered> {
+    suspend fun registerDevice(@RequestBody @Valid payload: DeviceRegistrationDTO): ResponseEntity<DeviceRegisteredDTO> {
 
-        val registrationStatus: Pair<HttpStatus, String?> = registerService.registerDevice(payload)
+        val registrationStatus = registerService.registerDevice(payload)
 
-        return if (registrationStatus.first === HttpStatus.ACCEPTED)
-            ResponseEntity.status(registrationStatus.first)
-                .body(DeviceRegistered(registrationStatus.second))
-        else
-            ResponseEntity.status(registrationStatus.first).body(null)
+        return ResponseEntity(registrationStatus.second, registrationStatus.first)
     }
 }
-
-data class RegistrationToValidate(val provisional_id: UUID?, val email: String)
-data class ValidateRegistration(val provisional_id: String, val activation_code: Int)
-data class DeviceRegistered(val name: String?)

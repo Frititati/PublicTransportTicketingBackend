@@ -15,29 +15,29 @@ import java.util.*
 class UnitTestsDTO {
     @Test
     fun sameActivationTest() {
-        val u = User(1, "TestMe", "Abc&1234", "testme@gmail.com", Role.CUSTOMER,false, null)
-        val a = ActivationDTO(UUID.fromString("eda6bff4-cc1e-46be-80fe-b5a59fcc75e3"), 1, LocalDateTime.of(2022, 5, 8, 10, 0, 0), 5, u)
-        val a2 = Activation(UUID.fromString("eda6bff4-cc1e-46be-80fe-b5a59fcc75e3"), 1, LocalDateTime.of(2022, 5, 8, 10, 0, 0), 5, u)
+        val u = User(1, "TestMe", "Abc&1234", "testme@gmail.com", Role.CUSTOMER.ordinal,false)
+        val a = ActivationDTO(UUID.fromString("eda6bff4-cc1e-46be-80fe-b5a59fcc75e3"), 1, LocalDateTime.of(2022, 5, 8, 10, 0, 0), 5, u.id)
+        val a2 = Activation(UUID.fromString("eda6bff4-cc1e-46be-80fe-b5a59fcc75e3"), 1, LocalDateTime.of(2022, 5, 8, 10, 0, 0), 5, u.id)
         assert(a == a2.toDTO())
     }
 
     @Test
     fun differentActivationTest() {
-        val u = User(1, "TestMe2", "Abc&1234", "testme2@gmail.com", Role.CUSTOMER, false, null)
-        val a = ActivationDTO(UUID.fromString("eda6bff4-cc1e-46be-80fe-b5a59fcc75e3"), 1, LocalDateTime.of(2022, 5, 8, 10, 0, 0), 5, u)
-        val a2 = Activation(UUID.fromString("eda6bff4-cc1e-46be-80fe-b5a59fcc75e3"), 2, LocalDateTime.of(2022, 5, 8, 10, 0, 0), 5, u)
+        val u = User(1, "TestMe2", "Abc&1234", "testme2@gmail.com", Role.CUSTOMER.ordinal, false)
+        val a = ActivationDTO(UUID.fromString("eda6bff4-cc1e-46be-80fe-b5a59fcc75e3"), 1, LocalDateTime.of(2022, 5, 8, 10, 0, 0), 5, u.id)
+        val a2 = Activation(UUID.fromString("eda6bff4-cc1e-46be-80fe-b5a59fcc75e3"), 2, LocalDateTime.of(2022, 5, 8, 10, 0, 0), 5, u.id)
         assert(a != a2.toDTO())
     }
     @Test
     fun sameUserTest(){
         val u = UserDTO(1, "TestMe", "Abc&1234", "testme@gmail.com",Role.CUSTOMER,false)
-        val u2 = User(1, "TestMe", "Abc&1234", "testme@gmail.com",Role.CUSTOMER, false, null)
+        val u2 = User(1, "TestMe", "Abc&1234", "testme@gmail.com",Role.CUSTOMER.ordinal, false)
         assert (u == u2.toDTO())
     }
     @Test
     fun differentUserTest(){
         val u = UserDTO(1, "TestMe", "Abc&1234", "testme@gmail.com",Role.CUSTOMER, false)
-        val u2 = User(2, "TestMe2", "Abc&1234", "testme2@gmail.com",Role.CUSTOMER,false, null)
+        val u2 = User(2, "TestMe2", "Abc&1234", "testme2@gmail.com",Role.CUSTOMER.ordinal,false)
         assert (u != u2.toDTO())
     }
 }

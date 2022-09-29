@@ -1,20 +1,22 @@
 package it.polito.wa2.registration_login.entities
 
-import org.hibernate.annotations.GenericGenerator
+import org.springframework.data.annotation.Id
+import org.springframework.data.relational.core.mapping.Column
+import org.springframework.data.relational.core.mapping.Table
 import java.time.LocalDateTime
 import java.util.UUID
-import javax.persistence.*
 
-@Entity
-class Activation(
+@Table("activation")
+data class Activation(
     @Id
-    @GeneratedValue(generator = "uuid2")
-    @GenericGenerator(name = "uuid2", strategy = "uuid2")
-    val id: UUID?,
+    @Column("id")
+    var id: UUID?,
+    @Column("activation_code")
     val activationCode: Int,
+    @Column("deadline")
     var deadline: LocalDateTime,
+    @Column("counter")
     var counter: Int,
-
-    @OneToOne
-    val user: User
+    @Column("user_id")
+    val userId: Long?
 )

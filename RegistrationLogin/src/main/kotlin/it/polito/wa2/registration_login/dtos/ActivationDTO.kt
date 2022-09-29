@@ -6,13 +6,13 @@ import it.polito.wa2.registration_login.entities.Activation
 import java.time.LocalDateTime
 
 data class ActivationDTO(
-    val id: UUID?,
+    var id: UUID?,
     val activationCode: Int,
     val deadline: LocalDateTime,
     var counter: Int,
-    val user: User
+    val userId: Long?
 )
 
 fun Activation.toDTO(): ActivationDTO {
-    return ActivationDTO(id, activationCode, deadline, counter, user)
+    return ActivationDTO(id, activationCode, deadline, counter, userId)
 }
