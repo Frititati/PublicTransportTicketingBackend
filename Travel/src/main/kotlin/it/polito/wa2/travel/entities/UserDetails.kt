@@ -9,7 +9,7 @@ import java.time.LocalDateTime
 class UserDetails (
     @Id
     @Column("id")
-    val id : Long?,
+    var id : Long?,
     @Column("nickname")
     val nickname: String,
     @Column("name")

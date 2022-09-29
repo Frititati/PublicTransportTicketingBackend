@@ -16,7 +16,7 @@ class TicketPurchased  (
     @Column("exp")
     val exp : LocalDateTime,
 
-    // TODO here we make a string and later process it using ',' as seperator
+    // TODO here we make a string and later process it using ',' as separator
     @Column("zid")
     val zid : Set<String>,
 

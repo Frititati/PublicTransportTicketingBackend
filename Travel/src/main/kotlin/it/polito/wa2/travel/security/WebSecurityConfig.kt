@@ -2,50 +2,33 @@ package it.polito.wa2.travel.security
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.security.authentication.AuthenticationManager
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder
-import org.springframework.security.config.annotation.web.builders.HttpSecurity
-import org.springframework.security.config.annotation.web.builders.WebSecurity
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter
-import org.springframework.security.config.http.SessionCreationPolicy
+import org.springframework.security.config.web.server.SecurityWebFiltersOrder
+import org.springframework.security.config.web.server.ServerHttpSecurity
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
+import org.springframework.security.web.server.SecurityWebFilterChain
 
 @Configuration
-@EnableWebSecurity
-class WebSecurityConfig(val jwtUtils: JwtUtils) : WebSecurityConfigurerAdapter() {
-
-    override fun configure(web: WebSecurity) {
-        super.configure(web)
-    }
-
-    override fun configure(auth: AuthenticationManagerBuilder) {
-        super.configure(auth)
-    }
-
-    override fun configure(http: HttpSecurity) {
-        http
-            .csrf().disable()
-            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            .and()
-            .authorizeRequests()
-            .mvcMatchers("/admin/**").hasRole(Role.ADMIN.toString())
-            .mvcMatchers("/my/**").hasRole(Role.CUSTOMER.toString())
-            .and()
-            .addFilter(jwtAuthTokenFilter())
-    }
-
-    @Bean
-    fun jwtAuthTokenFilter() : JwtAuthenticationTokenFilter {
-        return JwtAuthenticationTokenFilter(authenticationManager(), jwtUtils)
-    }
+class WebSecurityConfig(private val jwtUtils: JwtUtils) {
 
     @Bean
     fun passwordEncoder(): PasswordEncoder = BCryptPasswordEncoder()
 
     @Bean
-    override fun authenticationManager(): AuthenticationManager {
-        return super.authenticationManager()
+    fun securityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain {
+
+
+        return http.authorizeExchange()
+            .pathMatchers("/my/**").hasRole("CUSTOMER")
+            .pathMatchers("/admin/**").hasRole("ADMIN")
+            .and()
+            .addFilterAt(jwtAuthTokenFilter(), SecurityWebFiltersOrder.AUTHORIZATION)
+            .csrf().disable()
+            .build()
+    }
+
+    @Bean
+    fun jwtAuthTokenFilter() : JwtTokenAuthenticationFilter {
+        return JwtTokenAuthenticationFilter(jwtUtils)
     }
 }

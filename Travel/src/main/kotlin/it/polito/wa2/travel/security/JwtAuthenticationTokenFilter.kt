@@ -1,58 +1,45 @@
 package it.polito.wa2.travel.security
 
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
-import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.SimpleGrantedAuthority
-import org.springframework.security.core.context.SecurityContextHolder
-import org.springframework.security.web.authentication.www.BasicAuthenticationFilter
-import org.springframework.stereotype.Component
+import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import org.springframework.util.StringUtils
-import javax.servlet.FilterChain
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpServletResponse
+import org.springframework.web.server.ServerWebExchange
+import org.springframework.web.server.WebFilter
+import org.springframework.web.server.WebFilterChain
+import reactor.core.publisher.Mono
 
-@Component
-class JwtAuthenticationTokenFilter(
-    authManager: AuthenticationManager,
-    private val jwtUtils: JwtUtils
-) : BasicAuthenticationFilter(authManager) {
 
-    @Value("\${application.headerString}")
-    lateinit var headerString: String
+class JwtTokenAuthenticationFilter(private val tokenProvider: JwtUtils) : WebFilter {
 
     @Value("\${application.tokenPrefix}")
     lateinit var tokenPrefix: String
 
-    override fun doFilterInternal(
-        req: HttpServletRequest,
-        res: HttpServletResponse,
-        chain: FilterChain
-    ) {
-        try {
-            val jwt: String? = parseJwt(req)
+    @Value("\${application.headerString}")
+    lateinit var headerString: String
 
-            if ((jwt != null) && jwtUtils.validateJwt(jwt)) {
-
-                jwtUtils.getDetailsJwt(jwt)?.also {
-                    val role: ArrayList<GrantedAuthority?> = ArrayList()
-                    role.add(SimpleGrantedAuthority("ROLE_${it.role}"))
-                    val user = UsernamePasswordAuthenticationToken(it.username, null, role)
-                    SecurityContextHolder.getContext().authentication = user
-                }
-            }
-        } catch (e: Exception) {
-            logger.error("Cannot set user authentication: {}", e)
+    override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
+        val token = exchange.request.headers.getFirst(headerString)?.let { parseJwt(it) }
+        if (StringUtils.hasText(token) && tokenProvider.validateJwt(token) && !token.isNullOrEmpty()) {
+            val user = tokenProvider.getDetailsJwt(token)
+            val authentication = UsernamePasswordAuthenticationToken(
+                user?.username,
+                null,
+                mutableListOf(SimpleGrantedAuthority("ROLE_${user?.role}"))
+            )
+            return chain.filter(exchange)
+                .contextWrite(ReactiveSecurityContextHolder.withAuthentication(authentication))
         }
-
-        chain.doFilter(req, res)
+        return chain.filter(exchange)
     }
 
-    private fun parseJwt(request: HttpServletRequest): String? {
-        val headerAuth = request.getHeader(headerString)
+
+    private fun parseJwt(headerAuth: String): String? {
+
         return if (StringUtils.hasText(headerAuth) && headerAuth.startsWith(tokenPrefix)) {
             headerAuth.substring(7, headerAuth.length)
         } else null
     }
+
 }

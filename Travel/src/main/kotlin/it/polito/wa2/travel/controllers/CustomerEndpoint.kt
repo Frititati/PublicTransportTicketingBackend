@@ -22,7 +22,8 @@ class CustomerEndpoint(val travelerService: TravelerService) {
     }
 
     @PutMapping("/my/profile")
-    suspend fun updateProfile(@Valid @RequestBody payload: UserDetailsDTO): ResponseEntity<Any> {
+    suspend fun updateProfile(@Valid @RequestBody payload: UserDetailsDTO): ResponseEntity<Void> {
+        // TODO improve input for date of birth
         val result = travelerService.userUpdate(payload)
         return ResponseEntity(null, result)
     }

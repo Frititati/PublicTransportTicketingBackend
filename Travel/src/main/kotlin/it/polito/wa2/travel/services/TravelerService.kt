@@ -13,6 +13,8 @@ import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
+import org.springframework.security.core.context.ReactiveSecurityContextHolder
+import org.springframework.security.core.context.SecurityContext
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
@@ -36,7 +38,10 @@ class TravelerService {
     lateinit var ticketKey: String
 
     suspend fun getUserByNickname(): Pair<HttpStatus, Mono<UserDetailsDTO>?> {
-        val nickname = SecurityContextHolder.getContext().authentication.principal.toString()
+
+        val nickname = ReactiveSecurityContextHolder.getContext()
+            .map { obj: SecurityContext -> obj.authentication.principal as String }.awaitLast()
+        println(nickname)
         return try {
             if (userDetailsRepo.existsUserDetailsByNickname(nickname).awaitSingle()) {
                 Pair(HttpStatus.OK, userDetailsRepo.findOneByNickname(nickname).map { it.toDTO() })
@@ -53,7 +58,8 @@ class TravelerService {
     }
 
     suspend fun userUpdate(userDetails: UserDetailsDTO): HttpStatus {
-        val nickname = SecurityContextHolder.getContext().authentication.principal.toString()
+        val nickname = ReactiveSecurityContextHolder.getContext()
+            .map { obj: SecurityContext -> obj.authentication.principal as String }.awaitLast()
         return try {
             if (userDetailsRepo.existsUserDetailsByNickname(nickname).awaitSingle()) {
                 val user = userDetailsRepo.findOneByNickname(nickname).awaitSingle()
@@ -138,7 +144,8 @@ class TravelerService {
         type: String,
         exp: LocalDateTime?
     ): Pair<HttpStatus, List<TicketPurchasedDTO>?> {
-        val nickname = SecurityContextHolder.getContext().authentication.principal.toString()
+        val nickname = ReactiveSecurityContextHolder.getContext()
+            .map { obj: SecurityContext -> obj.authentication.principal as String }.awaitLast()
         return try {
             val user = getUserDetailsEntity(nickname).awaitSingle()
             val generatedKey: SecretKey = Keys.hmacShaKeyFor(ticketKey.toByteArray(StandardCharsets.UTF_8))
