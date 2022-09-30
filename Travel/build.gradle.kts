@@ -17,13 +17,17 @@ repositories {
 }
 
 dependencies {
-    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-    implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
+    implementation("org.springframework.boot:spring-boot-starter-webflux")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.hibernate.validator:hibernate-validator")
     implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("io.r2dbc:r2dbc-postgresql")
+    implementation("org.hibernate.validator:hibernate-validator")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("io.jsonwebtoken:jjwt-api:0.11.2")
 
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.2")

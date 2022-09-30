@@ -1,25 +1,23 @@
 package it.polito.wa2.travel.entities
 
+import org.springframework.data.annotation.Id
+import org.springframework.data.relational.core.mapping.Column
+import org.springframework.data.relational.core.mapping.Table
 import java.time.LocalDateTime
-import javax.persistence.*
 
-@Entity
+@Table("user_details")
 class UserDetails (
     @Id
-    @GeneratedValue(strategy= GenerationType.SEQUENCE)
-    val id : Long?,
+    @Column("id")
+    var id : Long?,
+    @Column("nickname")
     val nickname: String,
+    @Column("name")
     var name : String?,
+    @Column("address")
     var address: String?,
+    @Column("date_of_birth")
     var dateOfBirth : LocalDateTime?,
-    var telephoneNumber : Long?,
-
-    @OneToMany(mappedBy = "userDetails")
-    val ticketPurchased: MutableSet<TicketPurchased> = mutableSetOf()
-) {
-
-    fun addTicket(t: TicketPurchased) {
-        t.userDetails = this
-        ticketPurchased.add(t)
-    }
-}
+    @Column("telephone_number")
+    var telephoneNumber : Long?
+)
