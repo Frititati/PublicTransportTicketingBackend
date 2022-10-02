@@ -3,12 +3,12 @@ package it.polito.wa2.travel.controllers
 import it.polito.wa2.travel.dtos.TicketPurchasedDTO
 import it.polito.wa2.travel.dtos.UserDetailsDTO
 import it.polito.wa2.travel.services.TravelerService
+import kotlinx.coroutines.reactive.awaitFirstOrNull
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Flux
-import reactor.core.publisher.Mono
 import java.time.LocalDateTime
 import javax.validation.Valid
 
@@ -16,9 +16,10 @@ import javax.validation.Valid
 class CustomerEndpoint(val travelerService: TravelerService) {
 
     @GetMapping("/my/profile")
-    suspend fun getProfile(): ResponseEntity<Mono<UserDetailsDTO>> {
+    suspend fun getProfile(): ResponseEntity<UserDetailsDTO> {
+        // TODO look up wit MONO is available
         val result = travelerService.getUserByNickname()
-        return ResponseEntity(result.second, result.first)
+        return ResponseEntity(result.second.awaitFirstOrNull(), result.first)
     }
 
     @PutMapping("/my/profile")
@@ -40,8 +41,10 @@ class CustomerEndpoint(val travelerService: TravelerService) {
     suspend fun buyTickets(@RequestBody ticketPurchase: TicketPurchase): ResponseEntity<List<TicketPurchasedDTO>?> {
         // INFO please note that this is called by TicketCatalogue, not by a user
         return if (travelerService.validatePurchaseTicket(ticketPurchase)) {
+            println(ticketPurchase)
             //val tickets = travelerService.createTickets(nickname, ticketPurchase.quantity, ticketPurchase.zones)
             val result = travelerService.addTickets(ticketPurchase.quantity, ticketPurchase.zones, ticketPurchase.type, ticketPurchase.exp)
+            println(result.second)
             ResponseEntity(result.second, result.first)
         } else {
             ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null)

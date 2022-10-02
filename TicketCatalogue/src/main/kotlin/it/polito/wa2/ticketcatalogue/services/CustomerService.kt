@@ -168,9 +168,15 @@ class CustomerService(
         }
     }
 
-    suspend fun contactTicketService(ticket: AvailableTicket, jwt: String, purchaseRequest: PurchaseRequestDTO): List<TicketDTO>? {
-        // TODO: make zone dynamic (not always ABC)
-        val body = TicketPurchaseDTO("buy_tickets", purchaseRequest.numberOfTickets, "ABC", ticket.type, ticket.type.exp)
+    suspend fun contactTicketService(ticket: AvailableTicket, jwt: String, purchaseRequest: PurchaseRequestDTO): List<TicketDTO> {
+
+        val zones =  ticket.zones.replace("{" , "[").replace("}" , "]")
+
+        // available tickets -> ["A","B"] -> {A,B}
+
+        val body = TicketPurchaseDTO("buy_tickets", purchaseRequest.numberOfTickets, zones, ticket.type, ticket.type.exp)
+
+        println(body)
 
         return try {
             val client = webClient.post()
@@ -191,7 +197,7 @@ class CustomerService(
 
 
         } catch (e: Exception) {
-            null
+            emptyList()
         }
     }
 

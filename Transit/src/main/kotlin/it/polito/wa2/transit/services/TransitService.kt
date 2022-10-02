@@ -16,11 +16,6 @@ import it.polito.wa2.transit.entities.TicketValidated
 import it.polito.wa2.transit.repositories.TicketValidatedRepository
 import kotlinx.coroutines.reactive.awaitLast
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
 import reactor.core.publisher.Flux
 import java.nio.charset.StandardCharsets
 import java.time.LocalDate
@@ -51,6 +46,8 @@ class TransitService {
 
                 val zidTicket = Jwts.parserBuilder().setSigningKey(generatedKey).build()
                     .parseClaimsJws(ticket.jws).body["zid"].toString()
+                val nickname = Jwts.parserBuilder().setSigningKey(generatedKey).build()
+                    .parseClaimsJws(ticket.jws).body["nickname"].toString()
                 val zidMachine = ticket.zid
                 val ticketId = UUID.fromString(Jwts.parserBuilder().setSigningKey(generatedKey).build()
                     .parseClaimsJws(ticket.jws).body.subject.toString())
@@ -61,7 +58,7 @@ class TransitService {
                     // if false there is no ticket with the same UUID, so the ticket is never used
                     if(!ticketValidatedRepository.existsByTicketId(ticketId).awaitLast()){
                         // save in repo
-                        val entity = TicketValidated(null, ticketId, LocalDateTime.now(), zidTicket)
+                        val entity = TicketValidated(null, ticketId, LocalDateTime.now(), zidTicket,nickname)
                         ticketValidatedRepository.save(entity).awaitLast()
                         // TODO test await last
 
@@ -116,14 +113,28 @@ class TransitService {
                 startDateTime = endDateTime
                 endDateTime = a
             }
-            Pair(HttpStatus.OK, ticketValidatedRepository.findTicketValidatedByPurchaseDateGreaterThanEqualAndPurchaseDateLessThanEqual(startDateTime, endDateTime).map { it.toDTO() })
+            Pair(HttpStatus.OK, ticketValidatedRepository.findTicketValidatedByValidationDateGreaterThanEqualAndValidationDateLessThanEqual(startDateTime, endDateTime).map { it.toDTO() })
         } catch (e: Exception) {
             Pair(HttpStatus.BAD_REQUEST, Flux.empty())
         }
     }
 
     suspend fun getAllTransitByNicknameAndTimePeriod(nickname: String, timeReport: TimeReportDTO): Pair<HttpStatus, Flux<TicketValidatedDTO>>{
-        return Pair(HttpStatus.BAD_REQUEST, Flux.empty())
+        return try {
+            val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+            val startDate = LocalDate.parse(timeReport.initialDate, dateFormatter)
+            var startDateTime = LocalDateTime.of(startDate, LocalTime.of(0, 0))
+            val endDate = LocalDate.parse(timeReport.finalDate, dateFormatter)
+            var endDateTime = LocalDateTime.of(endDate, LocalTime.of(23, 59))
+            if (startDateTime.isAfter(endDateTime)) {
+                val a = startDateTime
+                startDateTime = endDateTime
+                endDateTime = a
+            }
+            Pair(HttpStatus.OK, ticketValidatedRepository.findTicketValidatedByValidationDateGreaterThanEqualAndValidationDateLessThanEqualAndNickname(startDateTime, endDateTime, nickname).map { it.toDTO() })
+        } catch (e: Exception) {
+            Pair(HttpStatus.BAD_REQUEST, Flux.empty())
+        }
     }
 
 }

@@ -1,5 +1,8 @@
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 CREATE TABLE IF NOT EXISTS ticket_purchased (
         id serial PRIMARY KEY,
+        ticket_id uuid,
         "type" varchar,
         issued_at timestamp,
         exp timestamp,

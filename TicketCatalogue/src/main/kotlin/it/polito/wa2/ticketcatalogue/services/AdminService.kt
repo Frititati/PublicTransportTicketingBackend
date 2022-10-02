@@ -59,7 +59,9 @@ class AdminService(
                             ticket.price,
                             TicketType.valueOf(ticket.type),
                             ticket.minAge ?: 0,
-                            ticket.maxAge ?: 99
+                            ticket.maxAge ?: 99,
+                            ticket.zones.joinToString(prefix = "[", postfix = "]", separator = ",")
+                            // TODO future problem
                         )
                     ).map { it.toDTO() }.awaitLast()
                 )
@@ -79,7 +81,7 @@ class AdminService(
         }
     }
 
-    suspend fun usersWithOrders(timeReport: TimeReportDTO?): Pair<HttpStatus, List<UserOrdersDTO?>> {
+    suspend fun usersWithOrders(timeReport: TimeReportDTO?): Pair<HttpStatus, List<UserOrdersDTO>> {
         val jwt = ReactiveSecurityContextHolder.getContext()
             .map { obj: SecurityContext -> obj.authentication.principal as PrincipalUserDTO }.awaitLast().jwt!!
 
@@ -103,8 +105,6 @@ class AdminService(
                     endDateTime
                 ).collectList().awaitLast()
             }
-
-
             val client = webClient.get()
                 .uri("/admin/travelers")
                 .header("Authorization", "$prefixHeader$jwt")

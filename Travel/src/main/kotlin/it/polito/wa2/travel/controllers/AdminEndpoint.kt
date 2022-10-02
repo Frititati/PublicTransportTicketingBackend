@@ -4,6 +4,7 @@ import it.polito.wa2.travel.dtos.TicketPurchasedDTO
 import it.polito.wa2.travel.dtos.UserDetailsDTO
 import it.polito.wa2.travel.dtos.UserNicknameDTO
 import it.polito.wa2.travel.services.TravelerService
+import kotlinx.coroutines.reactive.awaitFirstOrNull
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -21,9 +22,10 @@ class AdminEndpoint(val travelerService: TravelerService) {
     }
 
     @GetMapping("/admin/traveler/{nickname}/profile")
-    suspend fun getUserProfile(@PathVariable nickname: String): ResponseEntity<Mono<UserDetailsDTO>?> {
+    suspend fun getUserProfile(@PathVariable nickname: String): ResponseEntity<UserDetailsDTO?> {
+        // TODO look up wit MONO is available
         val result = travelerService.getUserProfile(nickname)
-        return ResponseEntity(result.second, result.first)
+        return ResponseEntity(result.second.awaitFirstOrNull(), result.first)
     }
 
     @GetMapping("/admin/traveler/{nickname}/tickets")

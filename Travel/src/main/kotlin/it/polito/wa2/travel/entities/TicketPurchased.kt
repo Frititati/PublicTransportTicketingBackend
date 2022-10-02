@@ -10,15 +10,15 @@ import java.util.*
 class TicketPurchased  (
     @Id
     @Column("id")
-    var id: UUID?, // sub
+    var id : Long?,
+    @Column("ticket_id")
+    var ticketID: UUID?, // sub
     @Column("issued_at")
     val issuedAt : LocalDateTime, // iat
     @Column("exp")
     val exp : LocalDateTime,
-
-    // TODO here we make a string and later process it using ',' as separator
     @Column("zid")
-    val zid : Set<String>,
+    val zid : String,
 
     @Column("type")
     val type : String,

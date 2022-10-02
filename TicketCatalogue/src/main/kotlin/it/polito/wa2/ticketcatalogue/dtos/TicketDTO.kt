@@ -4,10 +4,11 @@ import java.time.LocalDateTime
 import java.util.*
 
 data class TicketDTO(
-    val id : UUID?,
-    val issuedAt : LocalDateTime,
-    val exp : LocalDateTime,
-    val zid : Set<String>,
-    val type : String,
-    val jws : String
+    val id: UUID?,
+    val issuedAt: LocalDateTime,
+    val exp: LocalDateTime,
+    val zid: String,
+    val type: String,
+    val jws: String,
+    val nickname: String
 )

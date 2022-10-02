@@ -46,7 +46,7 @@ class TransitEndpoint(val transitService: TransitService) {
      * Get orders of a specific user on a selectable time period
      */
     @PostMapping("/admin/transit/{nickname}/{zid}/")
-    suspend fun getUserOrdersTimePeriod(@PathVariable zid: String, @PathVariable nickname: String, @RequestBody timeReport: TimeReportDTO) : ResponseEntity<Flux<TicketValidatedDTO>> {
+    suspend fun getTransitByUserTimePeriod(@PathVariable zid: String, @PathVariable nickname: String, @RequestBody timeReport: TimeReportDTO) : ResponseEntity<Flux<TicketValidatedDTO>> {
         val result = transitService.getAllTransitByNicknameAndTimePeriod(nickname, timeReport)
         return ResponseEntity(result.second, result.first)
     }

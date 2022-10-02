@@ -13,5 +13,8 @@ interface TicketValidatedRepository : R2dbcRepository<TicketValidated, Long> {
 
     fun findTicketValidatedByZid(zid: String): Flux<TicketValidated>
 
-    fun findTicketValidatedByPurchaseDateGreaterThanEqualAndPurchaseDateLessThanEqual(initialDate : LocalDateTime, finalDate: LocalDateTime): Flux<TicketValidated>
+    fun findTicketValidatedByValidationDateGreaterThanEqualAndValidationDateLessThanEqual(initialDate : LocalDateTime, finalDate: LocalDateTime): Flux<TicketValidated>
+
+    fun findTicketValidatedByValidationDateGreaterThanEqualAndValidationDateLessThanEqualAndNickname(initialDate : LocalDateTime, finalDate: LocalDateTime, nickname: String): Flux<TicketValidated>
+
 }

@@ -6,7 +6,8 @@ CREATE TABLE IF NOT EXISTS available_tickets (
      exp timestamp,
      -- To check the age of the user in case it's necessary
      min_age int,
-     max_age int
+     max_age int,
+     zones varchar
 );
 
 CREATE TABLE IF NOT EXISTS orders (

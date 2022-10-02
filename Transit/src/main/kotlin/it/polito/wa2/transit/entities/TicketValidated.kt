@@ -16,6 +16,7 @@ class TicketValidated(
     @Column("validation_date")
     val validationDate: LocalDateTime,
     @Column("zid")
-    val zid: String,
-    // TODO add user
+    val zid: String, // this is only one zone
+    @Column("user_nickname")
+    val nickname: String
 )

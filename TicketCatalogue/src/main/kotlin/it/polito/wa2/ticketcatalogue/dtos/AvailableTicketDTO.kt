@@ -8,9 +8,10 @@ data class AvailableTicketDTO(
     var price: Double,
     var type: TicketType,
     var minAge : Long,
-    var maxAge : Long
+    var maxAge : Long,
+    var zones : String
 )
 
 fun AvailableTicket.toDTO() : AvailableTicketDTO {
-    return AvailableTicketDTO(ticketId, price, type, minAge, maxAge)
+    return AvailableTicketDTO(ticketId, price, type, minAge, maxAge, zones)
 }

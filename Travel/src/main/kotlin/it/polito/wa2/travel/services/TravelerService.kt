@@ -15,7 +15,6 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import org.springframework.security.core.context.SecurityContext
-import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -37,7 +36,7 @@ class TravelerService {
     @Value("\${application.ticketKey}")
     lateinit var ticketKey: String
 
-    suspend fun getUserByNickname(): Pair<HttpStatus, Mono<UserDetailsDTO>?> {
+    suspend fun getUserByNickname(): Pair<HttpStatus, Mono<UserDetailsDTO>> {
 
         val nickname = ReactiveSecurityContextHolder.getContext()
             .map { obj: SecurityContext -> obj.authentication.principal as String }.awaitLast()
@@ -53,7 +52,7 @@ class TravelerService {
                 ).map { it.toDTO() })
             }
         } catch (e: Exception) {
-            Pair(HttpStatus.BAD_REQUEST, null)
+            Pair(HttpStatus.BAD_REQUEST, Mono.empty())
         }
     }
 
@@ -87,14 +86,14 @@ class TravelerService {
         }
     }
 
-    suspend fun getUserTickets(nickname: String): Pair<HttpStatus, Flux<TicketPurchasedDTO>?> {
+    suspend fun getUserTickets(nickname: String): Pair<HttpStatus, Flux<TicketPurchasedDTO>> {
         // TODO check what happens if the user doesn't exist
         return try {
             val user = getUserDetailsEntity(nickname).awaitSingle()
             val tickets = ticketPurchasedRepo.findAllByUserID(user.id!!).map { it.toDTO() }
             Pair(HttpStatus.OK, tickets)
         } catch (e: Exception) {
-            Pair(HttpStatus.BAD_REQUEST, null)
+            Pair(HttpStatus.BAD_REQUEST, Flux.empty())
         }
     }
 
@@ -140,12 +139,12 @@ class TravelerService {
 
     suspend fun addTickets(
         quantity: Int,
-        zone: String,
+        zones: String,
         type: String,
         exp: LocalDateTime?
-    ): Pair<HttpStatus, List<TicketPurchasedDTO>?> {
+    ): Pair<HttpStatus, List<TicketPurchasedDTO>> {
         val nickname = ReactiveSecurityContextHolder.getContext()
-            .map { obj: SecurityContext -> obj.authentication.principal as String }.awaitLast()
+            .map { obj: SecurityContext -> obj.authentication.principal.toString() }.awaitLast()
         return try {
             val user = getUserDetailsEntity(nickname).awaitSingle()
             val generatedKey: SecretKey = Keys.hmacShaKeyFor(ticketKey.toByteArray(StandardCharsets.UTF_8))
@@ -155,44 +154,46 @@ class TravelerService {
                 val uuid = UUID.randomUUID()
                 val expiresAt = exp ?: LocalDateTime.now().plusHours(1)
                 val issuedAt = LocalDateTime.now()
-                val zoneSet = zone.trim().split("").filter { it.isNotEmpty() }.toSet()
 
                 val jwt = Jwts.builder().setSubject(uuid.toString())
                     .setExpiration(Date.from(expiresAt.atZone(ZoneId.systemDefault()).toInstant()))
                     .setIssuedAt(Date.from(issuedAt.atZone(ZoneId.systemDefault()).toInstant())).claim("type", type)
-                    .claim("zid", zoneSet).signWith(generatedKey).compact()
+                    .claim("zid", zones)
+                    .claim("nickname", nickname)
+                    .signWith(generatedKey)
+                    .compact()
                 // TODO zone will not work :/
 
                 val ticket = ticketPurchasedRepo.save(
                     TicketPurchased(
-                        uuid, issuedAt, expiresAt, zoneSet, type, jwt, user.id!!
+                        null, uuid, issuedAt, expiresAt, zones, type, jwt, user.id!!
                     )
                 ).awaitLast()
 
                 tickets.add(ticket.toDTO())
             }
-            Pair(HttpStatus.OK, tickets)
+            Pair(HttpStatus.CREATED, tickets)
         } catch (e: Exception) {
-            Pair(HttpStatus.BAD_REQUEST, null)
+            Pair(HttpStatus.BAD_REQUEST, emptyList())
         }
     }
 
 
-    suspend fun getTravelers(): Pair<HttpStatus, Flux<UserNicknameDTO>?> {
+    suspend fun getTravelers(): Pair<HttpStatus, Flux<UserNicknameDTO>> {
         return try {
             val users = userDetailsRepo.findAll()
             Pair(HttpStatus.OK, users.map { it.toUserNicknameDTO() })
         } catch (e: Exception) {
-            Pair(HttpStatus.BAD_REQUEST, null)
+            Pair(HttpStatus.BAD_REQUEST, Flux.empty())
         }
     }
 
-    suspend fun getUserProfile(nickname: String): Pair<HttpStatus, Mono<UserDetailsDTO>?> {
+    suspend fun getUserProfile(nickname: String): Pair<HttpStatus, Mono<UserDetailsDTO>> {
         return try {
             val user = userDetailsRepo.findOneByNickname(nickname)
             Pair(HttpStatus.OK, user.map { it.toDTO() })
         } catch (e: Exception) {
-            Pair(HttpStatus.BAD_REQUEST, null)
+            Pair(HttpStatus.BAD_REQUEST, Mono.empty())
         }
     }
 
@@ -214,40 +215,32 @@ class TravelerService {
     fun validateUserDetailsDTO(userDetailsDTO: UserDetailsDTO): Boolean {
 
         // check if null values
-        if (userDetailsDTO.name == null || userDetailsDTO.address == null || userDetailsDTO.dateOfBirth == null || userDetailsDTO.telephoneNumber == null) {
-            return false
+        return if (userDetailsDTO.name == null || userDetailsDTO.address == null || userDetailsDTO.dateOfBirth == null || userDetailsDTO.telephoneNumber == null) {
+            false
         }
 
         // check if empty
-        if (userDetailsDTO.name.isEmpty() || userDetailsDTO.address.isEmpty()) {
-            return false
+        else if (userDetailsDTO.name.isEmpty() || userDetailsDTO.address.isEmpty()) {
+            false
         }
 
         // check if phone number
-        if (userDetailsDTO.telephoneNumber.toString().length > 15 || 10 > userDetailsDTO.telephoneNumber.toString().length) {
-            return false
+        else if (userDetailsDTO.telephoneNumber.toString().length > 15 || 10 > userDetailsDTO.telephoneNumber.toString().length) {
+            false
         }
 
         // check if date of birth before now
-        if (userDetailsDTO.dateOfBirth.isAfter(LocalDateTime.now())) {
-            return false
-        }
-
-        return true
+        else !userDetailsDTO.dateOfBirth.isAfter(LocalDateTime.now())
     }
 
     fun validatePurchaseTicket(ticketPurchase: TicketPurchase): Boolean {
 
         // check if empty
-        if (ticketPurchase.cmd.isEmpty() || ticketPurchase.zones.isEmpty() || ticketPurchase.cmd != "buy_tickets") {
-            return false
+        return if (ticketPurchase.cmd.isEmpty() || ticketPurchase.zones.isEmpty() || ticketPurchase.cmd != "buy_tickets") {
+            false
         }
 
         // check quantity
-        if (ticketPurchase.quantity < 1) {
-            return false
-        }
-
-        return true
+        else ticketPurchase.quantity >= 1
     }
 }

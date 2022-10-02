@@ -16,5 +16,7 @@ data class AvailableTicket(
     @Column("min_age")
     var minAge : Long,
     @Column("max_age")
-    var maxAge : Long
+    var maxAge : Long,
+    @Column("zones")
+    var zones : String
 )
