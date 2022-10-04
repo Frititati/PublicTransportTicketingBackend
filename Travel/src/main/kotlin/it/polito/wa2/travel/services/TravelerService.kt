@@ -4,6 +4,7 @@ import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys
 import it.polito.wa2.travel.controllers.TicketPurchase
 import it.polito.wa2.travel.dtos.*
+import it.polito.wa2.travel.entities.TicketAddition
 import it.polito.wa2.travel.entities.TicketPurchased
 import it.polito.wa2.travel.entities.UserDetails
 import it.polito.wa2.travel.repositories.TicketPurchasedRepository
@@ -40,7 +41,6 @@ class TravelerService {
 
         val nickname = ReactiveSecurityContextHolder.getContext()
             .map { obj: SecurityContext -> obj.authentication.principal as String }.awaitLast()
-        println(nickname)
         return try {
             if (userDetailsRepo.existsUserDetailsByNickname(nickname).awaitSingle()) {
                 Pair(HttpStatus.OK, userDetailsRepo.findOneByNickname(nickname).map { it.toDTO() })
@@ -162,7 +162,6 @@ class TravelerService {
                     .claim("nickname", nickname)
                     .signWith(generatedKey)
                     .compact()
-                // TODO zone will not work :/
 
                 val ticket = ticketPurchasedRepo.save(
                     TicketPurchased(
@@ -175,6 +174,39 @@ class TravelerService {
             Pair(HttpStatus.CREATED, tickets)
         } catch (e: Exception) {
             Pair(HttpStatus.BAD_REQUEST, emptyList())
+        }
+    }
+
+    suspend fun processTicketAddition(ticketAddition: TicketAddition) {
+        try {
+            val user = getUserDetailsEntity(ticketAddition.userNickName).awaitSingle()
+            val generatedKey: SecretKey = Keys.hmacShaKeyFor(ticketKey.toByteArray(StandardCharsets.UTF_8))
+
+            val tickets: MutableList<TicketPurchasedDTO> = mutableListOf()
+            for (i in 1..ticketAddition.quantity) {
+                val uuid = UUID.randomUUID()
+                // TODO this time is wrong
+                val expiresAt = LocalDateTime.now().plusHours(1)
+                val issuedAt = LocalDateTime.now()
+
+                val jwt = Jwts.builder().setSubject(uuid.toString())
+                    .setExpiration(Date.from(expiresAt.atZone(ZoneId.systemDefault()).toInstant()))
+                    .setIssuedAt(Date.from(issuedAt.atZone(ZoneId.systemDefault()).toInstant())).claim("type", ticketAddition.type)
+                    .claim("zid", ticketAddition.zones)
+                    .claim("nickname", ticketAddition.userNickName)
+                    .signWith(generatedKey)
+                    .compact()
+
+                val ticket = ticketPurchasedRepo.save(
+                    TicketPurchased(
+                        null, uuid, issuedAt, expiresAt, ticketAddition.zones, ticketAddition.type.name, jwt, user.id!!
+                    )
+                ).awaitLast()
+
+                tickets.add(ticket.toDTO())
+            }
+        } catch (e: Exception) {
+            println(e.message)
         }
     }
 

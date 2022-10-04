@@ -35,15 +35,14 @@ dependencies {
     implementation("org.springframework.kafka:spring-kafka")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("io.r2dbc:r2dbc-postgresql")
-    implementation("org.postgresql:postgresql")
     implementation("org.hibernate.validator:hibernate-validator")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
-
-    implementation("ch.qos.logback:logback-core:1.2.11")
     implementation("io.jsonwebtoken:jjwt-api:0.11.2")
+    implementation("ch.qos.logback:logback-core:1.2.11")
 
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.2")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.11.2")
+    runtimeOnly("org.postgresql:postgresql")
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
