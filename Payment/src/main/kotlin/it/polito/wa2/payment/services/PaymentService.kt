@@ -38,6 +38,20 @@ class PaymentService(
 
     private val log = LoggerFactory.getLogger(javaClass)
 
+    /**
+     * @param purchaseOrder {
+     *                          nickName: String
+     *                          transactionId: Long
+     *                          price: Double
+     *                          creditCard: Long
+     *                          expirationDate: String
+     *                          cvv: Int
+     *                          cardHolder: String
+     *                      }
+     *
+     *  @return Randomly decide if the transaction will be ACCEPTED or REJECTED and then sends information back
+     *  through Kafka to the TicketCatalogueService and save it on its database
+     */
     suspend fun validatePurchase(purchaseOrder: PurchaseOrder) {
         try {
             val random = (0..1).random()
@@ -72,6 +86,12 @@ class PaymentService(
         }
     }
 
+    /**
+     * It takes information about user through the jwt in the Authorization header and extract the nickname
+     *
+     * @return HttpStatus 200 OK or 400 error
+     *         List of all the transactions made by the single user or null
+     */
     suspend fun userTransactions() : Pair<HttpStatus, Flux<TransactionDTO>> {
 
         return try {
@@ -86,6 +106,10 @@ class PaymentService(
         }
     }
 
+    /**
+     * @return HttpStatus 200 OK or 400 error
+     *         List of all the transactions made by the all the users or null
+     */
     suspend fun allTransactions() : Pair<HttpStatus, Flux<TransactionDTO>?> {
         return try {
 

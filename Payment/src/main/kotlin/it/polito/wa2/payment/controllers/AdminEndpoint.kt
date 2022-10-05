@@ -10,6 +10,9 @@ import reactor.core.publisher.Flux
 @RestController
 class AdminEndpoint(val paymentService: PaymentService) {
 
+    /**
+     * @return All the transactions that all the users made
+     */
     @GetMapping("/admin/transactions")
     suspend fun allTransactions() : ResponseEntity<Flux<TransactionDTO>?> {
         val result = paymentService.allTransactions()
