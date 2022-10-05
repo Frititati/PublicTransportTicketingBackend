@@ -1,7 +1,9 @@
 package it.polito.wa2.ticketcatalogue.kafka
 
+import it.polito.wa2.ticketcatalogue.entities.PurchaseOrder
+import it.polito.wa2.ticketcatalogue.entities.PurchaseOutcome
+import it.polito.wa2.ticketcatalogue.entities.TicketAddition
 import org.apache.kafka.clients.admin.AdminClientConfig
-import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
@@ -18,7 +20,9 @@ class KafkaConfig(
     @Value("\${kafka.bootstrapAddress}")
     private val servers: String,
     @Value("\${kafka.topics.purchaseOrder}")
-    private val topic: String
+    private val purchaseOrderTopic: String,
+    @Value("\${kafka.topics.addTickets}")
+    private val addTicketsTopic: String
 ) {
 
     @Bean
@@ -28,13 +32,14 @@ class KafkaConfig(
         return KafkaAdmin(configs)
     }
 
-    @Bean
-    fun createTopic(): NewTopic {
-        return NewTopic(topic, 1, 1.toShort())
-    }
+    // TODO I don't really think this is necessary :/
+//    @Bean
+//    fun createTopic(): NewTopic {
+//        return NewTopic(purchaseOrderTopic, 1, 1.toShort())
+//    }
 
     @Bean
-    fun consumerFactory(): ConsumerFactory<String?, Any?> {
+    fun consumerPurchaseOutcomeFactory(): ConsumerFactory<String?, PurchaseOutcome?> {
         val props: MutableMap<String, Any> = HashMap()
         props[ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG] = servers
         props[ConsumerConfig.GROUP_ID_CONFIG] = "ppr"
@@ -45,16 +50,16 @@ class KafkaConfig(
     }
 
     @Bean
-    fun kafkaListenerContainerFactory(): ConcurrentKafkaListenerContainerFactory<String, Any>? {
-        val factory = ConcurrentKafkaListenerContainerFactory<String, Any>()
-        factory.consumerFactory = consumerFactory()
+    fun kafkaListenerContainerFactory(): ConcurrentKafkaListenerContainerFactory<String, PurchaseOutcome>? {
+        val factory = ConcurrentKafkaListenerContainerFactory<String, PurchaseOutcome>()
+        factory.consumerFactory = consumerPurchaseOutcomeFactory()
         factory.containerProperties.ackMode = ContainerProperties.AckMode.MANUAL_IMMEDIATE
         factory.containerProperties.isSyncCommits = true
         return factory
     }
 
     @Bean
-    fun producerFactory(): ProducerFactory<String, Any> {
+    fun producerPurchaseOrderFactory(): ProducerFactory<String, PurchaseOrder> {
         val configProps: MutableMap<String, Any> = HashMap()
         configProps[ProducerConfig.BOOTSTRAP_SERVERS_CONFIG] = servers
         configProps[ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG] = StringSerializer::class.java
@@ -63,7 +68,21 @@ class KafkaConfig(
     }
 
     @Bean
-    fun kafkaTemplate(): KafkaTemplate<String, Any> {
-        return KafkaTemplate(producerFactory())
+    fun purchaseOrderTemplate(): KafkaTemplate<String, PurchaseOrder> {
+        return KafkaTemplate(producerPurchaseOrderFactory())
+    }
+
+    @Bean
+    fun producerTicketAdditionFactory(): ProducerFactory<String, TicketAddition> {
+        val configProps: MutableMap<String, Any> = HashMap()
+        configProps[ProducerConfig.BOOTSTRAP_SERVERS_CONFIG] = servers
+        configProps[ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG] = StringSerializer::class.java
+        configProps[ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG] = TicketAdditionSerializer::class.java
+        return DefaultKafkaProducerFactory(configProps)
+    }
+
+    @Bean
+    fun ticketAdditionTemplate(): KafkaTemplate<String, TicketAddition> {
+        return KafkaTemplate(producerTicketAdditionFactory())
     }
 }

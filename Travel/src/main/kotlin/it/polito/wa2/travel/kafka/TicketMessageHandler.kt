@@ -1,7 +1,7 @@
-package it.polito.wa2.ticketcatalogue.kafka
+package it.polito.wa2.travel.kafka
 
-import it.polito.wa2.ticketcatalogue.entities.PurchaseOutcome
-import it.polito.wa2.ticketcatalogue.services.CustomerService
+import it.polito.wa2.travel.entities.TicketAddition
+import it.polito.wa2.travel.services.TravelerService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -12,16 +12,16 @@ import org.springframework.kafka.support.Acknowledgment
 import org.springframework.stereotype.Component
 
 @Component
-class PaymentMessageHandler(val customerService: CustomerService) {
+class TicketMessageHandler(val travelerService: TravelerService) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    @KafkaListener(topics = ["\${kafka.topics.purchaseOutcome}"], groupId = "ppr")
+    @KafkaListener(topics = ["\${kafka.topics.addTickets}"], groupId = "ppr")
     fun listenPurchaseOutcome(consumerRecord: ConsumerRecord<Any, Any>, ack: Acknowledgment) {
         logger.info("Message received {}", consumerRecord)
         ack.acknowledge()
 
         CoroutineScope(Dispatchers.Default).launch {
-            customerService.processPurchaseOutcome(consumerRecord.value() as PurchaseOutcome)
+            travelerService.processTicketAddition(consumerRecord.value() as TicketAddition)
         }
     }
 }

@@ -23,6 +23,7 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    implementation("org.springframework.kafka:spring-kafka")
     implementation("org.hibernate.validator:hibernate-validator")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("io.r2dbc:r2dbc-postgresql")
@@ -34,9 +35,10 @@ dependencies {
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.11.2")
     runtimeOnly("org.postgresql:postgresql")
 
+    developmentOnly("org.springframework.boot:spring-boot-devtools")
+    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation ("org.testcontainers:junit-jupiter:1.17.1")
-    testImplementation("org.testcontainers:postgresql:1.17.1")
+    testImplementation("org.springframework.kafka:spring-kafka-test")
 }
 
 dependencyManagement {
