@@ -14,33 +14,40 @@ class JwtUtils {
     @Value("\${application.loginKey}")
     lateinit var secretString: String
 
-    fun validateJwt(authToken : String?) : Boolean {
+    fun validateJwt(authToken: String?): Boolean {
         val generatedKey: SecretKey = Keys.hmacShaKeyFor(secretString.toByteArray(StandardCharsets.UTF_8))
-        if(authToken.isNullOrEmpty()) return false
+        if (authToken.isNullOrEmpty()) return false
         else
-        try {
-            Jwts.parserBuilder().setSigningKey(generatedKey).build().parseClaimsJws(authToken)
-            return true
-        } catch (ex: SignatureException) {
-            println("Invalid signature")
-        } catch (ex: ExpiredJwtException) {
-            println("JWT Expired")
-        } catch (ex: MalformedJwtException) {
-            println("Malformed JSON")
-        } catch (ex: UnsupportedJwtException) {
-            println("Unsupported token")
-        } catch (ex: Exception) {
-            println(ex.message)
-        }
+            try {
+                Jwts.parserBuilder().setSigningKey(generatedKey).build().parseClaimsJws(authToken)
+                return true
+            } catch (ex: SignatureException) {
+                println("Invalid signature")
+            } catch (ex: ExpiredJwtException) {
+                println("JWT Expired")
+            } catch (ex: MalformedJwtException) {
+                println("Malformed JSON")
+            } catch (ex: UnsupportedJwtException) {
+                println("Unsupported token")
+            } catch (ex: Exception) {
+                println(ex.message)
+            }
         return false
     }
 
-    fun getDetailsJwt(authToken: String) : UserLoggedDTO? {
+    fun getDetailsJwt(authToken: String): UserLoggedDTO? {
         val generatedKey: SecretKey = Keys.hmacShaKeyFor(secretString.toByteArray(StandardCharsets.UTF_8))
         return try {
             val u = Jwts.parserBuilder().setSigningKey(generatedKey).build().parseClaimsJws(authToken).body.subject
-            val role = Jwts.parserBuilder().setSigningKey(generatedKey).build().parseClaimsJws(authToken).body["role"].toString()
-            UserLoggedDTO(u, Role.valueOf(role))
+            val role = Jwts.parserBuilder().setSigningKey(generatedKey).build()
+                .parseClaimsJws(authToken).body["role"].toString()
+            val zid = if (role == Role.DEVICE.toString()) {
+                Jwts.parserBuilder().setSigningKey(generatedKey).build()
+                    .parseClaimsJws(authToken).body["zone"].toString()
+            } else null
+
+            UserLoggedDTO(u, zid, Role.valueOf(role))
+
 
         } catch (ex: Exception) {
             println(ex.message)

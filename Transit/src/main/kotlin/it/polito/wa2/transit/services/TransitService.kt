@@ -4,18 +4,17 @@ import io.jsonwebtoken.ExpiredJwtException
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.MalformedJwtException
 import io.jsonwebtoken.UnsupportedJwtException
-import it.polito.wa2.transit.dtos.TicketToValidateDTO
-import it.polito.wa2.transit.dtos.TicketValidatedDTO
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import io.jsonwebtoken.security.*
-import it.polito.wa2.transit.dtos.TimeReportDTO
-import it.polito.wa2.transit.dtos.toDTO
+import it.polito.wa2.transit.dtos.*
 import it.polito.wa2.transit.entities.TicketValidated
 import it.polito.wa2.transit.repositories.TicketValidatedRepository
 import kotlinx.coroutines.reactive.awaitLast
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.security.core.context.ReactiveSecurityContextHolder
+import org.springframework.security.core.context.SecurityContext
 import reactor.core.publisher.Flux
 import java.nio.charset.StandardCharsets
 import java.time.LocalDate
@@ -33,8 +32,18 @@ class TransitService {
     @Value("\${application.ticketKey}")
     lateinit var ticketKey: String
 
+    /**
+     * @param ticket contains the jwt of the ticket that the device has to validate
+     *
+     * First of all, check if the jwt is correctly formatted and signed, then check if the zone of the ticket is the
+     * same of the zone of the device, then if everything is correct, it validates it.
+     *
+     * @return HttpStatus 200 OK or 400 error
+     *         information about the validated ticket like ticketId and validation date or null
+     */
     suspend fun validateTicket(ticket: TicketToValidateDTO): Pair<HttpStatus, TicketValidatedDTO?> {
-        // TODO add into security context the zone for the embedded device
+        // TODO: da testare
+
 
         if (ticket.jws.isEmpty()) return Pair(HttpStatus.BAD_REQUEST, null)
         else
@@ -48,17 +57,20 @@ class TransitService {
                     .parseClaimsJws(ticket.jws).body["zid"].toString()
                 val nickname = Jwts.parserBuilder().setSigningKey(generatedKey).build()
                     .parseClaimsJws(ticket.jws).body["nickname"].toString()
-                val zidMachine = ticket.zid
-                val ticketId = UUID.fromString(Jwts.parserBuilder().setSigningKey(generatedKey).build()
-                    .parseClaimsJws(ticket.jws).body.subject.toString())
+                val zidMachine = ReactiveSecurityContextHolder.getContext()
+                    .map { obj: SecurityContext -> obj.authentication.principal as PrincipalUserDTO }.awaitLast().zone!!
+                val ticketId = UUID.fromString(
+                    Jwts.parserBuilder().setSigningKey(generatedKey).build()
+                        .parseClaimsJws(ticket.jws).body.subject.toString()
+                )
 
                 //check match gate and ticket zone
                 return if (zidTicket.contains(zidMachine)) {
                     // check if ticket already exists inside db
                     // if false there is no ticket with the same UUID, so the ticket is never used
-                    if(!ticketValidatedRepository.existsByTicketId(ticketId).awaitLast()){
+                    if (!ticketValidatedRepository.existsByTicketId(ticketId).awaitLast()) {
                         // save in repo
-                        val entity = TicketValidated(null, ticketId, LocalDateTime.now(), zidTicket,nickname)
+                        val entity = TicketValidated(null, ticketId, LocalDateTime.now(), zidTicket, nickname)
                         ticketValidatedRepository.save(entity).awaitLast()
                         // TODO test await last
 
@@ -85,7 +97,11 @@ class TransitService {
         return Pair(HttpStatus.BAD_REQUEST, null)
     }
 
-    suspend fun getAllTransit(): Pair<HttpStatus, Flux<TicketValidatedDTO>>{
+    /**
+     * @return HttpStatus 200 OK or 400 error
+     *         List of all the validated tickets inside the db or null
+     */
+    suspend fun getAllTransit(): Pair<HttpStatus, Flux<TicketValidatedDTO>> {
         return try {
             Pair(HttpStatus.OK, ticketValidatedRepository.findAll().map { it.toDTO() })
         } catch (e: Exception) {
@@ -93,7 +109,13 @@ class TransitService {
         }
     }
 
-    suspend fun getAllTransitByZone(zid: String): Pair<HttpStatus, Flux<TicketValidatedDTO>>{
+    /**
+     * @param zid zone that the admin want to check
+     *
+     * @return HttpStatus 200 OK or 400 error
+     *         List of all the validated tickets for a specific zone or null
+     */
+    suspend fun getAllTransitByZone(zid: String): Pair<HttpStatus, Flux<TicketValidatedDTO>> {
         return try {
             Pair(HttpStatus.OK, ticketValidatedRepository.findTicketValidatedByZid(zid).map { it.toDTO() })
         } catch (e: Exception) {
@@ -101,40 +123,70 @@ class TransitService {
         }
     }
 
-    suspend fun getAllTransitByTimePeriod(timeReport: TimeReportDTO): Pair<HttpStatus, Flux<TicketValidatedDTO>>{
+    /**
+     * @param timeReport contains initialDate and finalDate inserted by the user in the yyyy-MM-dd format
+     *
+     * @return HttpStatus 200 OK or 400 error
+     *         List of all the validated tickets in a selected time period or null
+     */
+    suspend fun getAllTransitByTimePeriod(timeReport: TimeReportDTO): Pair<HttpStatus, Flux<TicketValidatedDTO>> {
         return try {
-            val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-            val startDate = LocalDate.parse(timeReport.initialDate, dateFormatter)
-            var startDateTime = LocalDateTime.of(startDate, LocalTime.of(0, 0))
-            val endDate = LocalDate.parse(timeReport.finalDate, dateFormatter)
-            var endDateTime = LocalDateTime.of(endDate, LocalTime.of(23, 59))
-            if (startDateTime.isAfter(endDateTime)) {
-                val a = startDateTime
-                startDateTime = endDateTime
-                endDateTime = a
-            }
-            Pair(HttpStatus.OK, ticketValidatedRepository.findTicketValidatedByValidationDateGreaterThanEqualAndValidationDateLessThanEqual(startDateTime, endDateTime).map { it.toDTO() })
+            val formatter = formatDate(timeReport)
+            Pair(
+                HttpStatus.OK,
+                ticketValidatedRepository.findTicketValidatedByValidationDateGreaterThanEqualAndValidationDateLessThanEqual(
+                    formatter.first,
+                    formatter.second
+                ).map { it.toDTO() })
         } catch (e: Exception) {
             Pair(HttpStatus.BAD_REQUEST, Flux.empty())
         }
     }
 
-    suspend fun getAllTransitByNicknameAndTimePeriod(nickname: String, timeReport: TimeReportDTO): Pair<HttpStatus, Flux<TicketValidatedDTO>>{
+    /**
+     * @param nickname username of the user for which the admin wants to check the validated tickets
+     * @param timeReport contains initialDate and finalDate inserted by the user in the yyyy-MM-dd format
+     *
+     * @return HttpStatus 200 OK or 400 error
+     *         List of all the validated tickets in a selected time period for a specific user or null
+     */
+    suspend fun getAllTransitByNicknameAndTimePeriod(
+        nickname: String,
+        timeReport: TimeReportDTO,
+    ): Pair<HttpStatus, Flux<TicketValidatedDTO>> {
         return try {
-            val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-            val startDate = LocalDate.parse(timeReport.initialDate, dateFormatter)
-            var startDateTime = LocalDateTime.of(startDate, LocalTime.of(0, 0))
-            val endDate = LocalDate.parse(timeReport.finalDate, dateFormatter)
-            var endDateTime = LocalDateTime.of(endDate, LocalTime.of(23, 59))
-            if (startDateTime.isAfter(endDateTime)) {
-                val a = startDateTime
-                startDateTime = endDateTime
-                endDateTime = a
-            }
-            Pair(HttpStatus.OK, ticketValidatedRepository.findTicketValidatedByValidationDateGreaterThanEqualAndValidationDateLessThanEqualAndNickname(startDateTime, endDateTime, nickname).map { it.toDTO() })
+            val formatter = formatDate(timeReport)
+            Pair(
+                HttpStatus.OK,
+                ticketValidatedRepository.findTicketValidatedByValidationDateGreaterThanEqualAndValidationDateLessThanEqualAndNickname(
+                    formatter.first,
+                    formatter.second,
+                    nickname
+                ).map { it.toDTO() })
         } catch (e: Exception) {
             Pair(HttpStatus.BAD_REQUEST, Flux.empty())
         }
     }
+
+
+    /**
+     * @param timeReport contains initialDate and finalDate inserted by the user in the yyyy-MM-dd format
+     *
+     * @return Pair with initialDate and finalDate in LocalDateTime format
+     */
+    suspend fun formatDate(timeReport: TimeReportDTO): Pair<LocalDateTime, LocalDateTime> {
+        val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        val startDate = LocalDate.parse(timeReport.initialDate, dateFormatter)
+        var startDateTime = LocalDateTime.of(startDate, LocalTime.of(0, 0))
+        val endDate = LocalDate.parse(timeReport.finalDate, dateFormatter)
+        var endDateTime = LocalDateTime.of(endDate, LocalTime.of(23, 59))
+        if (startDateTime.isAfter(endDateTime)) {
+            val a = startDateTime
+            startDateTime = endDateTime
+            endDateTime = a
+        }
+        return Pair(startDateTime, endDateTime)
+    }
+
 
 }

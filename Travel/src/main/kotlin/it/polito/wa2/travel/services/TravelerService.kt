@@ -40,7 +40,6 @@ class TravelerService {
 
         val nickname = ReactiveSecurityContextHolder.getContext()
             .map { obj: SecurityContext -> obj.authentication.principal as String }.awaitLast()
-        println(nickname)
         return try {
             if (userDetailsRepo.existsUserDetailsByNickname(nickname).awaitSingle()) {
                 Pair(HttpStatus.OK, userDetailsRepo.findOneByNickname(nickname).map { it.toDTO() })

@@ -12,7 +12,7 @@ import org.springframework.web.server.WebFilterChain
 import reactor.core.publisher.Mono
 
 
-class JwtTokenAuthenticationFilter(private val tokenProvider : JwtUtils) : WebFilter {
+class JwtTokenAuthenticationFilter(private val tokenProvider: JwtUtils) : WebFilter {
 
     @Value("\${application.tokenPrefix}")
     lateinit var tokenPrefix: String
@@ -25,10 +25,11 @@ class JwtTokenAuthenticationFilter(private val tokenProvider : JwtUtils) : WebFi
         if (StringUtils.hasText(token) && tokenProvider.validateJwt(token) && !token.isNullOrEmpty()) {
             val user = tokenProvider.getDetailsJwt(token)
             val authentication = UsernamePasswordAuthenticationToken(
-                PrincipalUserDTO(user?.username, token),
+                PrincipalUserDTO(user?.username, user?.zone, token),
                 null,
                 mutableListOf(SimpleGrantedAuthority("ROLE_${user?.role}"))
             )
+
             return chain.filter(exchange)
                 .contextWrite(ReactiveSecurityContextHolder.withAuthentication(authentication))
         }

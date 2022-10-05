@@ -10,6 +10,11 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 class AdminEndpoint (val adminService: AdminService){
 
+    /**
+     * @param username : String
+     *
+     * @return If username exist, it makes the user administrator changing its role
+     */
     @PostMapping("/admin/{username}/update")
     suspend fun makeAdmin(@PathVariable username: String) : ResponseEntity<UpdatedUserDTO?> {
 
