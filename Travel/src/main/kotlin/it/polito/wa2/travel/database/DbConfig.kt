@@ -8,7 +8,6 @@ import org.springframework.data.r2dbc.repository.config.EnableR2dbcRepositories
 import org.springframework.r2dbc.connection.init.ConnectionFactoryInitializer
 import org.springframework.r2dbc.connection.init.ResourceDatabasePopulator
 
-
 @Configuration
 @EnableR2dbcRepositories
 class DbConfig {

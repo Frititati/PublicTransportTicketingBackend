@@ -9,6 +9,7 @@ import it.polito.wa2.travel.entities.TicketPurchased
 import it.polito.wa2.travel.entities.UserDetails
 import it.polito.wa2.travel.repositories.TicketPurchasedRepository
 import it.polito.wa2.travel.repositories.UserDetailsRepository
+import kotlinx.coroutines.reactive.awaitFirst
 import kotlinx.coroutines.reactive.awaitLast
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.beans.factory.annotation.Autowired
@@ -89,6 +90,9 @@ class TravelerService {
     suspend fun getUserTickets(nickname: String): Pair<HttpStatus, Flux<TicketPurchasedDTO>> {
         // TODO check what happens if the user doesn't exist
         return try {
+            if(!userDetailsRepo.existsUserDetailsByNickname(nickname).awaitFirst()) {
+                return Pair(HttpStatus.BAD_REQUEST, Flux.empty())
+            }
             val user = getUserDetailsEntity(nickname).awaitSingle()
             val tickets = ticketPurchasedRepo.findAllByUserID(user.id!!).map { it.toDTO() }
             Pair(HttpStatus.OK, tickets)
@@ -235,7 +239,7 @@ class TravelerService {
 //    }
 
     private suspend fun getUserDetailsEntity(nickname: String): Mono<UserDetails> {
-        return if (userDetailsRepo.existsUserDetailsByNickname(nickname).awaitSingle()) {
+        return if (userDetailsRepo.existsUserDetailsByNickname(nickname).awaitFirst()) {
             userDetailsRepo.findOneByNickname(nickname)
         } else {
             userDetailsRepo.save(
