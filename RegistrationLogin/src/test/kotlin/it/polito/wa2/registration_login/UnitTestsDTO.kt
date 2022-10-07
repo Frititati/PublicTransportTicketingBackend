@@ -1,9 +1,11 @@
 package it.polito.wa2.registration_login
 
 import it.polito.wa2.registration_login.dtos.ActivationDTO
+import it.polito.wa2.registration_login.dtos.DeviceDTO
 import it.polito.wa2.registration_login.dtos.UserDTO
 import it.polito.wa2.registration_login.dtos.toDTO
 import it.polito.wa2.registration_login.entities.Activation
+import it.polito.wa2.registration_login.entities.Device
 import it.polito.wa2.registration_login.entities.User
 import it.polito.wa2.registration_login.security.Role
 import org.junit.jupiter.api.Test
@@ -39,5 +41,21 @@ class UnitTestsDTO {
         val u = UserDTO(1, "TestMe", "Abc&1234", "testme@gmail.com",Role.CUSTOMER, false)
         val u2 = User(2, "TestMe2", "Abc&1234", "testme2@gmail.com",Role.CUSTOMER.ordinal,false)
         assert (u != u2.toDTO())
+    }
+
+    /** NEW TESTS */
+
+    @Test
+    fun sameDeviceTest() {
+        val d = DeviceDTO(1, "TestMe", "Abc&1234", "A")
+        val d2 = Device(1, "TestMe", "Abc&1234", "A")
+        assert(d == d2.toDTO())
+    }
+
+    @Test
+    fun differentDeviceTest() {
+        val d = DeviceDTO(1, "TestMe", "Abc&1234", "A")
+        val d2 = Device(2, "TestMe2", "Abc&1234", "A")
+        assert(d != d2.toDTO())
     }
 }

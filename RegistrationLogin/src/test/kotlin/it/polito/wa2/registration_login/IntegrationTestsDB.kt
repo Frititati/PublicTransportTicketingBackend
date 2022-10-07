@@ -1,14 +1,15 @@
 package it.polito.wa2.registration_login
 
+import io.jsonwebtoken.Jwts
+import io.jsonwebtoken.security.Keys
 import io.r2dbc.spi.ConnectionFactory
-import it.polito.wa2.registration_login.dtos.LoginDTO
-import it.polito.wa2.registration_login.dtos.RegistrationToValidateDTO
-import it.polito.wa2.registration_login.dtos.UserRegistrationDTO
-import it.polito.wa2.registration_login.dtos.ValidateRegistrationDTO
+import it.polito.wa2.registration_login.dtos.*
 import it.polito.wa2.registration_login.repositories.ActivationRepository
 import it.polito.wa2.registration_login.repositories.UserRepository
+import it.polito.wa2.registration_login.security.Role
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.client.TestRestTemplate
 import org.springframework.boot.test.web.client.postForEntity
@@ -16,6 +17,7 @@ import org.springframework.boot.web.server.LocalServerPort
 import org.springframework.context.annotation.Bean
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpEntity
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.r2dbc.connection.init.CompositeDatabasePopulator
@@ -26,8 +28,11 @@ import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.*
+import javax.crypto.SecretKey
 
 
 @Testcontainers
@@ -76,6 +81,30 @@ class IntegrationTestsDB {
     @Autowired
     lateinit var userRepository : UserRepository
 
+    @Value("\${application.registration_loginKey}")
+    lateinit var secretString: String
+
+    @Value("\${application.tokenPrefix}")
+    lateinit var prefix : String
+
+    fun createAdminJWT() : String {
+
+        val generatedKey: SecretKey = Keys.hmacShaKeyFor(secretString.toByteArray(StandardCharsets.UTF_8))
+
+        val jwt = Jwts.builder()
+            .setSubject("Admin")
+            .setExpiration(
+                Date.from(
+                    LocalDateTime.now().plusHours(1).atZone(ZoneId.systemDefault()).toInstant()
+                )
+            )
+            .setIssuedAt(Date.from(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant()))
+            .claim("role", Role.ADMIN)
+            .signWith(generatedKey)
+            .compact()
+
+        return "$prefix$jwt"
+    }
 
     @Test
     fun registerUserSuccessfully() {
@@ -355,4 +384,238 @@ class IntegrationTestsDB {
 
         assert(response.statusCode == HttpStatus.OK)
     }
+
+    /** NEW TESTS */
+
+    @Test
+    fun registerDeviceWithoutAuth() {
+
+        val baseUrl = "http://localhost:$port/device"
+        val device = DeviceRegistrationDTO("testDevice", "Password123)", "A")
+
+        val request = HttpEntity(device)
+        val response = restTemplate.postForEntity<Unit>("$baseUrl/register", request)
+
+        assert(response.statusCode == HttpStatus.UNAUTHORIZED)
+
+
+    }
+
+    @Test
+    fun registerDeviceSuccessfully() {
+
+        val baseUrl = "http://localhost:$port/device"
+        val device = DeviceRegistrationDTO("testDevice", "Password123)", "A")
+        val auth = HttpHeaders()
+        auth.set("Authorization", createAdminJWT())
+        val request = HttpEntity(device,auth)
+        val response = restTemplate.postForEntity<Unit>("$baseUrl/register", request)
+
+        assert(response.statusCode == HttpStatus.ACCEPTED)
+
+
+    }
+
+    @Test
+    fun registerDeviceEmptyZone() {
+        val baseUrl = "http://localhost:$port/device"
+        val device = DeviceRegistrationDTO("testNickname", "Password123)", "")
+
+        val auth = HttpHeaders()
+        auth.set("Authorization", createAdminJWT())
+        val request = HttpEntity(device,auth)
+        val response = restTemplate.postForEntity<Unit>("$baseUrl/register", request)
+        assert(response.statusCode == HttpStatus.BAD_REQUEST)
+
+    }
+
+    @Test
+    fun registerDeviceEmptyName() {
+        val baseUrl = "http://localhost:$port/device"
+        val device = DeviceRegistrationDTO("", "Password123)", "A")
+
+        val auth = HttpHeaders()
+        auth.set("Authorization", createAdminJWT())
+        val request = HttpEntity(device,auth)
+        val response = restTemplate.postForEntity<Unit>("$baseUrl/register", request)
+        assert(response.statusCode == HttpStatus.BAD_REQUEST)
+
+    }
+
+    @Test
+    fun registerDeviceEmptyPassword() {
+        val baseUrl = "http://localhost:$port/device"
+        val device = DeviceRegistrationDTO("testNickname", "", "A")
+
+        val auth = HttpHeaders()
+        auth.set("Authorization", createAdminJWT())
+        val request = HttpEntity(device,auth)
+        val response = restTemplate.postForEntity<Unit>("$baseUrl/register", request)
+        assert(response.statusCode == HttpStatus.BAD_REQUEST)
+
+    }
+
+    @Test
+    fun registerDeviceInvalidPassword_No8Chars() {
+        val baseUrl = "http://localhost:$port/device"
+        val device = DeviceRegistrationDTO("testNickname", "pass1)", "A")
+
+        val auth = HttpHeaders()
+        auth.set("Authorization", createAdminJWT())
+        val request = HttpEntity(device,auth)
+        val response = restTemplate.postForEntity<Unit>("$baseUrl/register", request)
+        assert(response.statusCode == HttpStatus.BAD_REQUEST)
+
+    }
+
+    @Test
+    fun registerDeviceInvalidPassword_NoNumber() {
+        val baseUrl = "http://localhost:$port/device"
+        val device = DeviceRegistrationDTO("testNickname", "Password)", "A")
+
+        val auth = HttpHeaders()
+        auth.set("Authorization", createAdminJWT())
+        val request = HttpEntity(device,auth)
+        val response = restTemplate.postForEntity<Unit>("$baseUrl/register", request)
+        assert(response.statusCode == HttpStatus.BAD_REQUEST)
+
+    }
+
+    @Test
+    fun registerDeviceInvalidPassword_NoUpperCaseLetter() {
+        val baseUrl = "http://localhost:$port/device"
+        val device = DeviceRegistrationDTO("testNickname", "password123)", "A")
+
+        val auth = HttpHeaders()
+        auth.set("Authorization", createAdminJWT())
+        val request = HttpEntity(device,auth)
+        val response = restTemplate.postForEntity<Unit>("$baseUrl/register", request)
+        assert(response.statusCode == HttpStatus.BAD_REQUEST)
+
+    }
+
+    @Test
+    fun registerDeviceNotUniqueNickname() {
+        val baseUrl = "http://localhost:$port/device"
+        val device = DeviceRegistrationDTO("testNickname2", "Password123)", "A")
+
+        val auth = HttpHeaders()
+        auth.set("Authorization", createAdminJWT())
+        val request = HttpEntity(device,auth)
+        restTemplate.postForEntity<Unit>("$baseUrl/register", request)
+
+        val response = restTemplate.postForEntity<Unit>("$baseUrl/register", request)
+        assert(response.statusCode == HttpStatus.BAD_REQUEST)
+
+    }
+
+    @Test
+    fun loginWithWrongDeviceName() {
+        val baseUrl = "http://localhost:$port/device"
+        val device = DeviceRegistrationDTO("loginNickname", "Password123)", "A")
+
+        val auth = HttpHeaders()
+        auth.set("Authorization", createAdminJWT())
+        val request = HttpEntity(device,auth)
+        restTemplate.postForEntity<Unit>("$baseUrl/register", request)
+
+        val response = restTemplate.postForEntity<Unit>("$baseUrl/login", LoginDTO("", device.password))
+
+        assert(response.statusCode == HttpStatus.BAD_REQUEST)
+    }
+
+    @Test
+    fun loginWithWrongDevicePassword() {
+        val baseUrl = "http://localhost:$port/device"
+        val device = DeviceRegistrationDTO("loginNickname2", "Password123)", "A")
+
+        val auth = HttpHeaders()
+        auth.set("Authorization", createAdminJWT())
+        val request = HttpEntity(device,auth)
+        restTemplate.postForEntity<Unit>("$baseUrl/register", request)
+
+        val response = restTemplate.postForEntity<Unit>("$baseUrl/login", LoginDTO(device.name, ""))
+
+        assert(response.statusCode == HttpStatus.BAD_REQUEST)
+    }
+
+    @Test
+    fun loginWithCorrectData_Device() {
+        val baseUrl = "http://localhost:$port/device"
+        val device = DeviceRegistrationDTO("loginNickname3", "Password123)", "A")
+
+        val auth = HttpHeaders()
+        auth.set("Authorization", createAdminJWT())
+        val request = HttpEntity(device,auth)
+        restTemplate.postForEntity<Unit>("$baseUrl/register", request)
+
+        val response = restTemplate.postForEntity<String>("$baseUrl/login", LoginDTO(device.name, device.password))
+
+        assert(response.statusCode == HttpStatus.OK)
+    }
+
+    @Test
+    fun makeAdminWithIncorrectUsername() {
+        val baseUrl = "http://localhost:$port"
+        val user = UserRegistrationDTO("adminNickname", "Password123)", "loginEmailAdmin@gmail.com")
+
+        val request = HttpEntity(user)
+        restTemplate.postForEntity<Unit>("$baseUrl/user/register", request)
+
+        val dbUser = userRepository.findByUsername(user.username).block()
+
+        dbUser?.id?.let {
+            val db = userRepository.findById(it).block()
+            db?.active = true
+            userRepository.save(db!!).subscribe()
+        }
+
+        val auth = HttpHeaders()
+        auth.set("Authorization", createAdminJWT())
+        val request2 = HttpEntity("", auth)
+        val response = restTemplate.postForEntity<String>("$baseUrl/admin/wrongName/update", request2)
+
+        assert(response.statusCode == HttpStatus.BAD_REQUEST)
+    }
+
+    @Test
+    fun makeAdminWithNotActivatedUser() {
+        val baseUrl = "http://localhost:$port"
+        val user = UserRegistrationDTO("adminNickname2", "Password123)", "loginEmailAdmin2@gmail.com")
+
+        val request = HttpEntity(user)
+        restTemplate.postForEntity<Unit>("$baseUrl/user/register", request)
+
+        val auth = HttpHeaders()
+        auth.set("Authorization", createAdminJWT())
+        val request2 = HttpEntity("", auth)
+        val response = restTemplate.postForEntity<Unit>("$baseUrl/admin/${user.username}/update", request2)
+
+        assert(response.statusCode == HttpStatus.BAD_REQUEST)
+    }
+
+    @Test
+    fun makeAdminCorrectly() {
+        val baseUrl = "http://localhost:$port"
+        val user = UserRegistrationDTO("adminNickname3", "Password123)", "loginEmailAdmin3@gmail.com")
+
+        val request = HttpEntity(user)
+        restTemplate.postForEntity<Unit>("$baseUrl/user/register", request)
+
+        val dbUser = userRepository.findByUsername(user.username).block()
+
+        dbUser?.id?.let {
+            val db = userRepository.findById(it).block()
+            db?.active = true
+            userRepository.save(db!!).subscribe()
+        }
+
+        val auth = HttpHeaders()
+        auth.set("Authorization", createAdminJWT())
+        val request2 = HttpEntity("", auth)
+        val response = restTemplate.postForEntity<String>("$baseUrl/admin/${user.username}/update", request2)
+
+        assert(response.statusCode == HttpStatus.ACCEPTED)
+    }
+
 }

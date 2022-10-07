@@ -9,7 +9,6 @@ import it.polito.wa2.registration_login.repositories.UserRepository
 import it.polito.wa2.registration_login.security.Role
 import it.polito.wa2.registration_login.security.WebSecurityConfig
 import kotlinx.coroutines.reactive.awaitFirstOrNull
-import kotlinx.coroutines.reactive.awaitLast
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
@@ -84,7 +83,7 @@ class LoginService {
      */
     suspend fun loginDevice(credentials: LoginDTO): Pair<HttpStatus, LoginJWTDTO?> {
 
-        val device = deviceRepository.findByName(credentials.username).awaitLast()
+        val device = deviceRepository.findByName(credentials.username).awaitFirstOrNull()
 
         return if (device?.name?.isNotEmpty() == true) {
             val userPassword = device.password

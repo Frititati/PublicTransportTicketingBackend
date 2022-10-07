@@ -16,7 +16,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 import java.util.*
 
@@ -184,7 +183,7 @@ class RegisterService {
      * @return HttpStatus 200 OK or 400 error
      *         The name of the created device if everything is OK (200) otherwise null
      */
-    @Transactional
+
     suspend fun registerDevice(device: DeviceRegistrationDTO): Pair<HttpStatus, DeviceRegisteredDTO?> {
         /**
          * 1. username, password, and zone cannot be empty;
@@ -200,6 +199,8 @@ class RegisterService {
             )
 
             !validatePassword(device.password) -> Pair(HttpStatus.BAD_REQUEST, null)
+
+            device.zone.isEmpty() -> Pair(HttpStatus.BAD_REQUEST, null)
 
             else -> {
                 try {

@@ -3,6 +3,7 @@ package it.polito.wa2.registration_login.services
 import it.polito.wa2.registration_login.dtos.UpdatedUserDTO
 import it.polito.wa2.registration_login.repositories.UserRepository
 import it.polito.wa2.registration_login.security.Role
+import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactive.awaitLast
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
@@ -15,18 +16,18 @@ class AdminService {
     lateinit var userRepository: UserRepository
 
     suspend fun updateUser(username: String): Pair<HttpStatus, UpdatedUserDTO?> {
-        val userToUpdate = userRepository.findByUsername(username).awaitLast()
+        val userToUpdate = userRepository.findByUsername(username).awaitFirstOrNull()
 
-        return if (userToUpdate != null) {
+        if (userToUpdate != null) {
 
 
             if(!userToUpdate.active) {
                 println("User is not active")
-                Pair(HttpStatus.BAD_REQUEST, null)
+                return Pair(HttpStatus.BAD_REQUEST, null)
             }
 
             userToUpdate.role = Role.ADMIN.ordinal
-            try {
+            return try {
 
                 userRepository.save(
                     userToUpdate
@@ -38,7 +39,7 @@ class AdminService {
                 Pair(HttpStatus.BAD_REQUEST, null)
             }
 
-        } else Pair(HttpStatus.BAD_REQUEST, null)
+        } else return Pair(HttpStatus.BAD_REQUEST, null)
 
     }
 }

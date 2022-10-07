@@ -1,15 +1,16 @@
 package it.polito.wa2.registration_login
 
-import it.polito.wa2.registration_login.dtos.RegistrationToValidateDTO
-import it.polito.wa2.registration_login.dtos.UserRegistrationDTO
-import it.polito.wa2.registration_login.dtos.ValidateDTO
+import it.polito.wa2.registration_login.dtos.*
 import it.polito.wa2.registration_login.entities.Activation
 import it.polito.wa2.registration_login.entities.User
 import it.polito.wa2.registration_login.repositories.ActivationRepository
+import it.polito.wa2.registration_login.repositories.DeviceRepository
 import it.polito.wa2.registration_login.repositories.UserRepository
 import it.polito.wa2.registration_login.security.Role
 import it.polito.wa2.registration_login.security.WebSecurityConfig
+import it.polito.wa2.registration_login.services.AdminService
 import it.polito.wa2.registration_login.services.EmailService
+import it.polito.wa2.registration_login.services.LoginService
 import it.polito.wa2.registration_login.services.RegisterService
 import kotlinx.coroutines.reactive.awaitFirst
 import kotlinx.coroutines.reactive.awaitLast
@@ -29,10 +30,19 @@ class UnitTestsBusinessLogic {
     lateinit var registerService: RegisterService
 
     @Autowired
+    lateinit var loginService: LoginService
+
+    @Autowired
     lateinit var emailService: EmailService
 
     @Autowired
+    lateinit var adminService: AdminService
+
+    @Autowired
     lateinit var userRepository: UserRepository
+
+    @Autowired
+    lateinit var deviceRepository: DeviceRepository
 
     @Autowired
     lateinit var activationRepository: ActivationRepository
@@ -460,4 +470,163 @@ class UnitTestsBusinessLogic {
 
         Assertions.assertTrue(emailResult)
     }
+
+    /** NEW TESTS **/
+
+    @Test
+    fun rejectRegisterDeviceInvalidPassword_empty() = runBlocking {
+        val device = DeviceRegistrationDTO("testPassword", "", "A")
+        Assertions.assertEquals(Pair(HttpStatus.BAD_REQUEST, null), registerService.registerDevice(device))
+    }
+
+    @Test
+    fun rejectRegisterDeviceInvalidPassword_less8Chars() = runBlocking {
+        val device = DeviceRegistrationDTO("testPassword", "Pass1)", "A")
+        Assertions.assertEquals(Pair(HttpStatus.BAD_REQUEST, null), registerService.registerDevice(device))
+    }
+
+    @Test
+    fun rejectRegisterDeviceInvalidPassword_emptySpace() = runBlocking {
+        val device = DeviceRegistrationDTO("testPassword", "Password 123)", "A")
+        Assertions.assertEquals(Pair(HttpStatus.BAD_REQUEST, null), registerService.registerDevice(device))
+    }
+
+    @Test
+    fun rejectRegisterDeviceInvalidPassword_noLowerCase() = runBlocking {
+        val device = DeviceRegistrationDTO("testPassword", "PASSWORD123)", "A")
+        Assertions.assertEquals(Pair(HttpStatus.BAD_REQUEST, null), registerService.registerDevice(device))
+    }
+
+    @Test
+    fun rejectRegisterDeviceInvalidPassword_noUpperCase() = runBlocking {
+        val device = DeviceRegistrationDTO("testPassword", "password123)", "A")
+        Assertions.assertEquals(Pair(HttpStatus.BAD_REQUEST, null), registerService.registerDevice(device))
+    }
+
+    @Test
+    fun rejectRegisterDeviceInvalidPassword_noDigits() = runBlocking {
+        val device = DeviceRegistrationDTO("testPassword", "Password)", "A")
+        Assertions.assertEquals(Pair(HttpStatus.BAD_REQUEST, null), registerService.registerDevice(device))
+    }
+
+    @Test
+    fun rejectRegisterDeviceInvalidPassword_noSpecialChars() = runBlocking {
+        val device = DeviceRegistrationDTO("testPassword", "Password123", "A")
+        Assertions.assertEquals(Pair(HttpStatus.BAD_REQUEST, null), registerService.registerDevice(device))
+    }
+
+    @Test
+    fun rejectRegisterDeviceEmptyZone() = runBlocking {
+        val device = DeviceRegistrationDTO("testPassword", "Password123)", "")
+        Assertions.assertEquals(Pair(HttpStatus.BAD_REQUEST, null), registerService.registerDevice(device))
+    }
+    @Test
+    fun acceptRegisterValidDevice() = runBlocking {
+        val device = DeviceRegistrationDTO("testUser", "Password123)", "A")
+
+        val response = registerService.registerDevice(device)
+
+        val deviceID = deviceRepository.findById(response.second?.id!!).awaitSingleOrNull()?.id
+
+        deviceRepository.deleteById(deviceID!!).subscribe()
+
+        Assertions.assertEquals(HttpStatus.ACCEPTED, response.first)
+    }
+
+    @Test
+    fun loginValidUser() = runBlocking {
+        val user = UserRegistrationDTO("testUser", "Password123)", "testUser@gmail.com")
+
+        val register = registerService.registerUser(user)
+
+        val activation: Activation = activationRepository.findById(register.second?.provisional_id!!).awaitFirst()
+
+        registerService.validate(activation.id.toString(), activation.activationCode)
+
+        val response = loginService.loginUser(LoginDTO(user.username, user.password))
+
+        //activationRepository.deleteById(response.second?.provisional_id!!)
+        userRepository.deleteById(activation.userId!!).subscribe()
+
+        Assertions.assertEquals(HttpStatus.OK, response.first)
+    }
+
+    @Test
+    fun loginInvalidUser() = runBlocking {
+        val user = UserRegistrationDTO("testUser", "Password123)", "testUser@gmail.com")
+
+        val register = registerService.registerUser(user)
+
+        val activation: Activation = activationRepository.findById(register.second?.provisional_id!!).awaitFirst()
+
+        val response = loginService.loginUser(LoginDTO(user.username, user.password))
+
+        //activationRepository.deleteById(response.second?.provisional_id!!)
+        userRepository.deleteById(activation.userId!!).subscribe()
+
+        Assertions.assertEquals(HttpStatus.BAD_REQUEST, response.first)
+    }
+
+    @Test
+    fun loginValidDevice() = runBlocking {
+        val device = DeviceRegistrationDTO("testDevice", "Password123)", "A")
+
+        registerService.registerDevice(device)
+
+        val response = loginService.loginDevice(LoginDTO(device.name, device.password))
+
+        Assertions.assertEquals(HttpStatus.OK, response.first)
+    }
+
+    @Test
+    fun loginInvalidDevice() = runBlocking {
+
+
+        val response = loginService.loginDevice(LoginDTO("Test", "Password123)"))
+
+        Assertions.assertEquals(HttpStatus.BAD_REQUEST, response.first)
+    }
+
+    @Test
+    fun updateNotActiveUser() = runBlocking {
+        val user = UserRegistrationDTO("testUser", "Password123)", "testUser@gmail.com")
+
+        val register = registerService.registerUser(user)
+
+        val activation: Activation = activationRepository.findById(register.second?.provisional_id!!).awaitFirst()
+
+        val response = adminService.updateUser(user.username)
+
+        userRepository.deleteById(activation.userId!!).subscribe()
+
+        Assertions.assertEquals(HttpStatus.BAD_REQUEST, response.first)
+    }
+
+    @Test
+    fun updateNotExistingUser() = runBlocking {
+        val user = UserRegistrationDTO("testUser", "Password123)", "testUser@gmail.com")
+
+        val response = adminService.updateUser(user.username)
+
+        Assertions.assertEquals(HttpStatus.BAD_REQUEST, response.first)
+    }
+
+    @Test
+    fun updateExistingUser() = runBlocking {
+        val user = UserRegistrationDTO("testUser", "Password123)", "testUser@gmail.com")
+
+        val register = registerService.registerUser(user)
+
+        val activation: Activation = activationRepository.findById(register.second?.provisional_id!!).awaitFirst()
+
+        registerService.validate(activation.id.toString(), activation.activationCode)
+
+        val response = adminService.updateUser(user.username)
+
+        userRepository.deleteById(activation.userId!!).subscribe()
+
+        Assertions.assertEquals(HttpStatus.ACCEPTED, response.first)
+    }
+
+
 }
