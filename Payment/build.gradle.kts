@@ -36,6 +36,7 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-security")
 	implementation("io.r2dbc:r2dbc-postgresql")
 	implementation("org.postgresql:postgresql")
+	implementation("org.hibernate.validator:hibernate-validator")
 
 	implementation("ch.qos.logback:logback-core:1.2.11")
 	implementation("io.jsonwebtoken:jjwt-api:0.11.2")
@@ -47,10 +48,16 @@ dependencies {
 	annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.springframework.kafka:spring-kafka-test")
+	testImplementation ("org.testcontainers:junit-jupiter:1.17.3")
+	testImplementation("org.testcontainers:postgresql:1.17.3")
+	testImplementation("org.testcontainers:r2dbc:1.17.3")
+	testImplementation("org.testcontainers:kafka:1.17.3")
+	testImplementation("org.springframework.security:spring-security-test")
 }
 
 dependencyManagement {
 	imports {
+		mavenBom("org.testcontainers:testcontainers-bom:1.16.3")
 		mavenBom("org.springframework.cloud:spring-cloud-dependencies:${property("springCloudVersion")}")
 	}
 }
