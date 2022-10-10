@@ -75,7 +75,7 @@ class IntegrationTestsDB {
     @Value("\${application.tokenPrefix}")
     lateinit var prefix: String
 
-    fun createAdminJWT(username: String, role: Role): String {
+    fun createJWT(username: String, role: Role): String {
 
         val generatedKey: SecretKey = Keys.hmacShaKeyFor(secretString.toByteArray(StandardCharsets.UTF_8))
 
@@ -108,7 +108,7 @@ class IntegrationTestsDB {
         val baseUrl = "http://localhost:$port/"
 
         val auth = HttpHeaders()
-        auth.set("Authorization", createAdminJWT("User", Role.CUSTOMER))
+        auth.set("Authorization", createJWT("User", Role.CUSTOMER))
 
         val entity = HttpEntity<String>("parameters", auth)
         val response = restTemplate.exchange("$baseUrl/transactions", HttpMethod.GET, entity, String::class.java)
@@ -121,7 +121,7 @@ class IntegrationTestsDB {
 
         // only customers can access /transactions
         val auth = HttpHeaders()
-        auth.set("Authorization", createAdminJWT("User", Role.ADMIN))
+        auth.set("Authorization", createJWT("User", Role.ADMIN))
 
         val entity = HttpEntity<String>("parameters", auth)
         val response = restTemplate.exchange("$baseUrl/transactions", HttpMethod.GET, entity, String::class.java)
@@ -142,7 +142,7 @@ class IntegrationTestsDB {
         val baseUrl = "http://localhost:$port/admin"
 
         val auth = HttpHeaders()
-        auth.set("Authorization", createAdminJWT("User", Role.ADMIN))
+        auth.set("Authorization", createJWT("User", Role.ADMIN))
 
         val entity = HttpEntity<String>("parameters", auth)
         val response = restTemplate.exchange("$baseUrl/transactions", HttpMethod.GET, entity, String::class.java)
@@ -155,7 +155,7 @@ class IntegrationTestsDB {
 
         // only customers can access /transactions
         val auth = HttpHeaders()
-        auth.set("Authorization", createAdminJWT("User", Role.CUSTOMER))
+        auth.set("Authorization", createJWT("User", Role.CUSTOMER))
 
         val entity = HttpEntity<String>("parameters", auth)
         val response = restTemplate.exchange("$baseUrl/transactions", HttpMethod.GET, entity, String::class.java)

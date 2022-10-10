@@ -4,6 +4,7 @@ import it.polito.wa2.ticketcatalogue.dtos.*
 import it.polito.wa2.ticketcatalogue.entities.*
 import it.polito.wa2.ticketcatalogue.repositories.AvailableTicketsRepository
 import it.polito.wa2.ticketcatalogue.repositories.OrdersRepository
+import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactive.awaitLast
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.slf4j.LoggerFactory
@@ -32,7 +33,7 @@ class CustomerService(
     @Autowired
     private val ticketAdditionKafkaTemplate: KafkaTemplate<String, TicketAddition>,
     @Value("\${application.travelerUri}")
-    val travelerUri: String
+    val travelerUri: String,
 ) {
 
     @Autowired
@@ -51,41 +52,46 @@ class CustomerService(
     suspend fun purchaseTicket(ticketId: Long, purchaseRequest: PurchaseRequestDTO): Pair<HttpStatus, OrderDTO?> {
 
         try {
-            val ticket = availableTicketsRepository.findById(ticketId).awaitLast()
+            val ticket = availableTicketsRepository.findById(ticketId).awaitFirstOrNull()
 
-            val principalObj = ReactiveSecurityContextHolder.getContext()
-                .map { obj: SecurityContext -> obj.authentication.principal as PrincipalUserDTO }.awaitLast()
-
-            val userJWT = principalObj.jwt!!
-
-            // In this case the ticket doesn't need to check the age of the user
-            if (ticket.minAge == 0L && ticket.maxAge == 99L) {
-                return startPurchaseOrder(ticket, userJWT, purchaseRequest, ticketId)
-
-                // In this case it means that the ticket needs to check the age of the user
-            } else if (ticket.minAge > 0L || ticket.maxAge < 99L) {
-
-                val dateOfBirth = retrieveUserInfo(userJWT)?.dateOfBirth
-
-                // If dateOfBirth is null it means that there is an error when connecting with the other service
-                // or that the user doesn't set it in his profile, so I have to return an error because I can't check it
-                return if (dateOfBirth != null && ((ticket.minAge > 0 && LocalDateTime.now().minusYears(ticket.minAge)
-                        .isAfter(dateOfBirth))
-                            || (ticket.maxAge < 99 && LocalDateTime.now().minusYears(ticket.maxAge)
-                        .isBefore(dateOfBirth)))
-                ) {
-
-
-                    // In this case the age of the user is ok to buy the ticket
-                    startPurchaseOrder(ticket, userJWT, purchaseRequest, ticketId)
-
-
-                } else {
-                    Pair(HttpStatus.BAD_REQUEST, null)
-                }
-
-            } else
+            if (ticket?.ticketId == null) {
                 return Pair(HttpStatus.BAD_REQUEST, null)
+            } else {
+                val principalObj = ReactiveSecurityContextHolder.getContext()
+                    .map { obj: SecurityContext -> obj.authentication.principal as PrincipalUserDTO }.awaitLast()
+
+                val userJWT = principalObj.jwt!!
+
+                // In this case the ticket doesn't need to check the age of the user
+                if (ticket.minAge == 0L && ticket.maxAge == 99L) {
+                    return startPurchaseOrder(ticket, userJWT, purchaseRequest, ticketId)
+
+                    // In this case it means that the ticket needs to check the age of the user
+                } else if (ticket.minAge > 0L || ticket.maxAge < 99L) {
+
+                    val dateOfBirth = retrieveUserInfo(userJWT)?.dateOfBirth
+
+                    // If dateOfBirth is null it means that there is an error when connecting with the other service
+                    // or that the user doesn't set it in his profile, so I have to return an error because I can't check it
+                    return if (dateOfBirth != null && ((ticket.minAge > 0 && LocalDateTime.now()
+                            .minusYears(ticket.minAge)
+                            .isAfter(dateOfBirth))
+                                || (ticket.maxAge < 99 && LocalDateTime.now().minusYears(ticket.maxAge)
+                            .isBefore(dateOfBirth)))
+                    ) {
+
+
+                        // In this case the age of the user is ok to buy the ticket
+                        startPurchaseOrder(ticket, userJWT, purchaseRequest, ticketId)
+
+
+                    } else {
+                        Pair(HttpStatus.BAD_REQUEST, null)
+                    }
+
+                } else
+                    return Pair(HttpStatus.BAD_REQUEST, null)
+            }
 
 
         } catch (e: Exception) {
@@ -110,9 +116,10 @@ class CustomerService(
 
         return try {
             val nickname = ReactiveSecurityContextHolder.getContext()
-                .map { obj: SecurityContext -> obj.authentication.principal as PrincipalUserDTO }.awaitLast().nickname!!
+                .map { obj: SecurityContext -> obj.authentication.principal as PrincipalUserDTO }.awaitFirstOrNull()?.nickname
+                ?: return Pair(HttpStatus.BAD_REQUEST, null)
 
-            val orders = ordersRepository.findAllByNickname(nickname).map { it.toDTO() }.collectList().awaitLast()
+            val orders = ordersRepository.findAllByNickname(nickname).map { it.toDTO() }.collectList().awaitFirstOrNull()
 
             return Pair(HttpStatus.OK, orders)
         } catch (e: Exception) {
@@ -124,12 +131,12 @@ class CustomerService(
 
     suspend fun getSingleOrder(orderId: Long): Pair<HttpStatus, OrderDTO?> {
         return try {
-            val order = ordersRepository.findById(orderId).awaitLast()
+            val order = ordersRepository.findById(orderId).awaitFirstOrNull()
 
             val nickName = ReactiveSecurityContextHolder.getContext()
                 .map { obj: SecurityContext -> obj.authentication.principal as PrincipalUserDTO }.awaitLast().nickname!!
 
-            if (order.nickname == nickName)
+            if (order?.nickname == nickName)
                 Pair(HttpStatus.OK, order.toDTO())
             else Pair(HttpStatus.UNAUTHORIZED, null)
         } catch (e: Exception) {
@@ -202,7 +209,7 @@ class CustomerService(
         ticket: AvailableTicket,
         jwt: String,
         purchaseRequest: PurchaseRequestDTO,
-        ticketId: Long
+        ticketId: Long,
     ): Pair<HttpStatus, OrderDTO?> {
         // generate order
         // send purchaseRequest to Payment

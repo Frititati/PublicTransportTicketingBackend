@@ -7,6 +7,7 @@ import it.polito.wa2.ticketcatalogue.entities.TicketType
 import it.polito.wa2.ticketcatalogue.repositories.AvailableTicketsRepository
 import it.polito.wa2.ticketcatalogue.repositories.OrdersRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactive.awaitLast
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
@@ -61,7 +62,7 @@ class AdminService(
                             ticket.minAge ?: 0,
                             ticket.maxAge ?: 99,
                             ticket.zones.joinToString(prefix = "[", postfix = "]", separator = ",")
-                            // TODO future problem
+                            //TODO: future problem
                         )
                     ).map { it.toDTO() }.awaitLast()
                 )
@@ -83,55 +84,58 @@ class AdminService(
 
     suspend fun usersWithOrders(timeReport: TimeReportDTO?): Pair<HttpStatus, List<UserOrdersDTO>> {
         val jwt = ReactiveSecurityContextHolder.getContext()
-            .map { obj: SecurityContext -> obj.authentication.principal as PrincipalUserDTO }.awaitLast().jwt!!
+            .map { obj: SecurityContext -> obj.authentication.principal as PrincipalUserDTO }.awaitFirstOrNull()?.jwt
 
-        return try {
+        if (jwt == null) return Pair(HttpStatus.BAD_REQUEST, emptyList())
+        else {
+            return try {
 
-            val orders = if (timeReport === null)
-                ordersRepository.findAll().collectList().awaitLast()
-            else {
-                val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-                val startDate = LocalDate.parse(timeReport.initialDate, dateFormatter)
-                var startDateTime = LocalDateTime.of(startDate, LocalTime.of(0, 0))
-                val endDate = LocalDate.parse(timeReport.finalDate, dateFormatter)
-                var endDateTime = LocalDateTime.of(endDate, LocalTime.of(23, 59))
-                if (startDateTime.isAfter(endDateTime)) {
-                    val a = startDateTime
-                    startDateTime = endDateTime
-                    endDateTime = a
+                val orders = if (timeReport === null)
+                    ordersRepository.findAll().collectList().awaitFirstOrNull()
+                else {
+                    val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+                    val startDate = LocalDate.parse(timeReport.initialDate, dateFormatter)
+                    var startDateTime = LocalDateTime.of(startDate, LocalTime.of(0, 0))
+                    val endDate = LocalDate.parse(timeReport.finalDate, dateFormatter)
+                    var endDateTime = LocalDateTime.of(endDate, LocalTime.of(23, 59))
+                    if (startDateTime.isAfter(endDateTime)) {
+                        val a = startDateTime
+                        startDateTime = endDateTime
+                        endDateTime = a
+                    }
+                    ordersRepository.findOrderByPurchaseDateGreaterThanEqualAndPurchaseDateLessThanEqual(
+                        startDateTime,
+                        endDateTime
+                    ).collectList().awaitLast()
                 }
-                ordersRepository.findOrderByPurchaseDateGreaterThanEqualAndPurchaseDateLessThanEqual(
-                    startDateTime,
-                    endDateTime
-                ).collectList().awaitLast()
-            }
-            val client = webClient.get()
-                .uri("/admin/travelers")
-                .header("Authorization", "$prefixHeader$jwt")
-                .accept(MediaType.APPLICATION_JSON)
-                .retrieve()
-                .bodyToMono(Array<Any>::class.java).log()
+                val client = webClient.get()
+                    .uri("/admin/travelers")
+                    .header("Authorization", "$prefixHeader$jwt")
+                    .accept(MediaType.APPLICATION_JSON)
+                    .retrieve()
+                    .bodyToMono(Array<Any>::class.java).log()
 
 
-            val objects: Array<Any>? = withContext(Dispatchers.IO) {
-                client.block()
-            }
-
-            val mapper = ObjectMapper()
-
-            val result = Arrays.stream(objects)
-                .map { mapper.convertValue(it, String::class.java) }
-                .map {
-                    val userOrders = orders.filter { user -> user.nickname == it }
-                    return@map UserOrdersDTO(it, userOrders)
+                val objects: Array<Any>? = withContext(Dispatchers.IO) {
+                    client.block()
                 }
-                .collect(Collectors.toList())
 
-            Pair(HttpStatus.OK, result)
+                val mapper = ObjectMapper()
 
-        } catch (e: Exception) {
-            println("$e")
-            Pair(HttpStatus.BAD_REQUEST, emptyList())
+                val result = Arrays.stream(objects)
+                    .map { mapper.convertValue(it, String::class.java) }
+                    .map {
+                        val userOrders = orders?.filter { user -> user.nickname == it }
+                        return@map userOrders?.let { it1 -> UserOrdersDTO(it, it1) }
+                    }
+                    .collect(Collectors.toList())
+
+                Pair(HttpStatus.OK, result)
+
+            } catch (e: Exception) {
+                println("$e")
+                Pair(HttpStatus.BAD_REQUEST, emptyList())
+            }
         }
     }
 
@@ -189,10 +193,10 @@ class AdminService(
 
     fun checkFields(ticket: AvailableTicketCreationDTO): Boolean {
         return when {
-            ticket.minAge != null && ticket.minAge < 0L -> false
-            ticket.minAge != null && ticket.minAge > 99L -> false
-            ticket.maxAge != null && ticket.maxAge < 0L -> false
-            ticket.maxAge != null && ticket.maxAge > 99L -> false
+            ticket.minAge !== null && ticket.minAge < 0L -> false
+            ticket.minAge !== null && ticket.minAge > 99L -> false
+            ticket.maxAge !== null && ticket.maxAge < 0L -> false
+            ticket.maxAge !== null && ticket.maxAge > 99L -> false
             ticket.type != TicketType.DAILY.toString() &&
                     ticket.type != TicketType.SINGLE.toString() &&
                     ticket.type != TicketType.MONTHLY.toString() &&
