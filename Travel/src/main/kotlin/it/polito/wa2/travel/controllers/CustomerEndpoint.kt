@@ -18,14 +18,13 @@ class CustomerEndpoint(val travelerService: TravelerService) {
 
     @GetMapping("/my/profile")
     suspend fun getProfile(): ResponseEntity<UserDetailsDTO> {
-        // TODO look up wit MONO is available
         val result = travelerService.getUserByNickname()
         return ResponseEntity(result.second.awaitFirstOrNull(), result.first)
     }
 
     @PutMapping("/my/profile")
     suspend fun updateProfile(@Valid @RequestBody payload: UserDetailsDTO): ResponseEntity<Void> {
-        // TODO improve input for date of birth
+        // TODO improve input for date of birth (Giacomo)
         val result = travelerService.userUpdate(payload)
         return ResponseEntity(null, result)
     }

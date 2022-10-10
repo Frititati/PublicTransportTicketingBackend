@@ -22,7 +22,6 @@ class AdminEndpoint(val travelerService: TravelerService) {
 
     @GetMapping("/admin/traveler/{nickname}/profile")
     suspend fun getUserProfile(@PathVariable nickname: String): ResponseEntity<UserDetailsDTO?> {
-        // TODO look up wit MONO is available
         val result = travelerService.getUserProfile(nickname)
         return ResponseEntity(result.second.awaitFirstOrNull(), result.first)
     }

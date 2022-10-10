@@ -7,6 +7,7 @@ import it.polito.wa2.travel.dtos.*
 import it.polito.wa2.travel.entities.TicketAddition
 import it.polito.wa2.travel.entities.TicketPurchased
 import it.polito.wa2.travel.entities.UserDetails
+import it.polito.wa2.travel.entities.UserRegister
 import it.polito.wa2.travel.repositories.TicketPurchasedRepository
 import it.polito.wa2.travel.repositories.UserDetailsRepository
 import kotlinx.coroutines.reactive.awaitFirst
@@ -88,9 +89,9 @@ class TravelerService {
     }
 
     suspend fun getUserTickets(nickname: String): Pair<HttpStatus, Flux<TicketPurchasedDTO>> {
-        // TODO check what happens if the user doesn't exist
+        // TODO check what happens if the user doesn't exist (fili)
         return try {
-            if(!userDetailsRepo.existsUserDetailsByNickname(nickname).awaitFirst()) {
+            if (!userDetailsRepo.existsUserDetailsByNickname(nickname).awaitFirst()) {
                 return Pair(HttpStatus.BAD_REQUEST, Flux.empty())
             }
             val user = getUserDetailsEntity(nickname).awaitSingle()
@@ -189,13 +190,14 @@ class TravelerService {
             val tickets: MutableList<TicketPurchasedDTO> = mutableListOf()
             for (i in 1..ticketAddition.quantity) {
                 val uuid = UUID.randomUUID()
-                // TODO this time is wrong
+                // TODO this time is wrong (fili)
                 val expiresAt = LocalDateTime.now().plusHours(1)
                 val issuedAt = LocalDateTime.now()
 
                 val jwt = Jwts.builder().setSubject(uuid.toString())
                     .setExpiration(Date.from(expiresAt.atZone(ZoneId.systemDefault()).toInstant()))
-                    .setIssuedAt(Date.from(issuedAt.atZone(ZoneId.systemDefault()).toInstant())).claim("type", ticketAddition.type)
+                    .setIssuedAt(Date.from(issuedAt.atZone(ZoneId.systemDefault()).toInstant()))
+                    .claim("type", ticketAddition.type)
                     .claim("zid", ticketAddition.zones)
                     .claim("nickname", ticketAddition.userNickName)
                     .signWith(generatedKey)
@@ -233,18 +235,11 @@ class TravelerService {
         }
     }
 
-
-//    fun doesUserExist(nickname: String): Boolean {
-//        return userDetailsRepo.existsUserDetailsByNickname(nickname)
-//    }
-
     private suspend fun getUserDetailsEntity(nickname: String): Mono<UserDetails> {
         return if (userDetailsRepo.existsUserDetailsByNickname(nickname).awaitFirst()) {
             userDetailsRepo.findOneByNickname(nickname)
         } else {
-            userDetailsRepo.save(
-                UserDetails(null, nickname, null, null, null, null)
-            )
+            Mono.empty()
         }
     }
 
@@ -278,5 +273,11 @@ class TravelerService {
 
         // check quantity
         else ticketPurchase.quantity >= 1
+    }
+
+    suspend fun processUserRegister(userRegister: UserRegister) {
+        userDetailsRepo.save(
+            UserDetails(null, userRegister.nickname, null, null, null, null)
+        ).awaitLast()
     }
 }

@@ -1,7 +1,6 @@
 package it.polito.wa2.registration_login.dtos
 
 import java.util.UUID
-import it.polito.wa2.registration_login.entities.User
 import it.polito.wa2.registration_login.entities.Activation
 import java.time.LocalDateTime
 

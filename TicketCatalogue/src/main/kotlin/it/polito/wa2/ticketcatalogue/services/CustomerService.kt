@@ -283,7 +283,7 @@ class CustomerService(
                     orderInfo.numberTickets,
                     ticketAvailable.zones,
                     ticketAvailable.type,
-                    "TODO not working",
+                    "TODO not working", // TODO do it on the side of traveller (fili)
                     orderInfo.nickname
                 )
                 log.info("Sending message via Kafka {}", ticketsToAdd)

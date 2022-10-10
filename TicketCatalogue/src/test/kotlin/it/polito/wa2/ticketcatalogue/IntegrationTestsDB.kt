@@ -319,7 +319,7 @@ class IntegrationTestsDB {
         assert(response.statusCode == HttpStatus.UNAUTHORIZED)
     }
 
-    //TODO not working
+    //TODO not working (Giacomo)
     @Test
     fun getUsersWithOrdersTimePeriod_Correctly() {
         addTickets_Correctly()
@@ -355,7 +355,7 @@ class IntegrationTestsDB {
     }
 
     /*
-    //TODO not working properly
+    //TODO not working properly (Giacomo)
     @Test
     fun getUserOrdersTimePeriod_Correct() {
 

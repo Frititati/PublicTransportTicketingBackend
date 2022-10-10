@@ -2,7 +2,9 @@ package it.polito.wa2.travel.kafka
 
 
 import it.polito.wa2.travel.entities.TicketAddition
+import it.polito.wa2.travel.entities.UserRegister
 import org.apache.kafka.clients.admin.AdminClientConfig
+import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.springframework.beans.factory.annotation.Value
@@ -17,16 +19,16 @@ import org.springframework.kafka.listener.ContainerProperties
 @Configuration
 class KafkaConfig(
     @Value("\${kafka.bootstrapAddress}")
-    private val servers: String,
-    @Value("\${kafka.topics.addTickets}")
-    private val addTicketsTopic: String
+    private val servers: String
 ) {
+
     @Bean
     fun kafkaAdmin(): KafkaAdmin {
         val configs: MutableMap<String, Any?> = HashMap()
         configs[AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG] = servers
         return KafkaAdmin(configs)
     }
+
     @Bean
     fun consumerTicketAdditionFactory(): ConsumerFactory<String?, TicketAddition?> {
         val props: MutableMap<String, Any> = HashMap()
@@ -42,6 +44,26 @@ class KafkaConfig(
     fun kafkaListenerContainerFactory(): ConcurrentKafkaListenerContainerFactory<String, TicketAddition>? {
         val factory = ConcurrentKafkaListenerContainerFactory<String, TicketAddition>()
         factory.consumerFactory = consumerTicketAdditionFactory()
+        factory.containerProperties.ackMode = ContainerProperties.AckMode.MANUAL_IMMEDIATE
+        factory.containerProperties.isSyncCommits = true
+        return factory
+    }
+
+    @Bean
+    fun consumerUserRegisterFactory(): ConsumerFactory<String?, UserRegister?> {
+        val props: MutableMap<String, Any> = HashMap()
+        props[ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG] = servers
+        props[ConsumerConfig.GROUP_ID_CONFIG] = "ppr1"
+        props[ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG] = StringDeserializer::class.java
+        props[ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG] = UserRegisterDeserializer::class.java
+        props[ConsumerConfig.AUTO_OFFSET_RESET_CONFIG] = "earliest"
+        return DefaultKafkaConsumerFactory(props)
+    }
+
+    @Bean
+    fun userKafkaListenerContainerFactory(): ConcurrentKafkaListenerContainerFactory<String, UserRegister>? {
+        val factory = ConcurrentKafkaListenerContainerFactory<String, UserRegister>()
+        factory.consumerFactory = consumerUserRegisterFactory()
         factory.containerProperties.ackMode = ContainerProperties.AckMode.MANUAL_IMMEDIATE
         factory.containerProperties.isSyncCommits = true
         return factory

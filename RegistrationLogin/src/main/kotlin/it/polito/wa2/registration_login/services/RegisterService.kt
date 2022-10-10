@@ -4,6 +4,7 @@ import it.polito.wa2.registration_login.dtos.*
 import it.polito.wa2.registration_login.entities.Activation
 import it.polito.wa2.registration_login.entities.Device
 import it.polito.wa2.registration_login.entities.User
+import it.polito.wa2.registration_login.entities.UserRegister
 import it.polito.wa2.registration_login.repositories.ActivationRepository
 import it.polito.wa2.registration_login.repositories.DeviceRepository
 import it.polito.wa2.registration_login.repositories.UserRepository
@@ -12,15 +13,26 @@ import it.polito.wa2.registration_login.security.WebSecurityConfig
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactive.awaitLast
 import kotlinx.coroutines.runBlocking
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
+import org.springframework.kafka.core.KafkaTemplate
+import org.springframework.kafka.support.KafkaHeaders
+import org.springframework.messaging.Message
+import org.springframework.messaging.support.MessageBuilder
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 import java.util.*
 
 @Service
-class RegisterService {
+class RegisterService(
+    @Autowired
+    private val kafkaTemplate: KafkaTemplate<String, UserRegister>,
+    @Value("\${kafka.topics.userRegister}")
+    val topic: String
+) {
 
     @Autowired
     lateinit var emailService: EmailService
@@ -36,6 +48,8 @@ class RegisterService {
 
     @Autowired
     lateinit var webSecurityConfig: WebSecurityConfig
+
+    private val log = LoggerFactory.getLogger(javaClass)
 
     private val specialChar = "[!\"#$%&'()*+,-./:;\\\\<=>?@\\[\\]^_`{|}~]"
     private val mailChar =
@@ -269,6 +283,21 @@ class RegisterService {
                         .awaitLast()
 
                     val userDTO = userRow.toDTO()
+
+                    try {
+                        val userRegister = UserRegister(userRow.username)
+                        log.info("Sending message to Kafka {}", userRegister)
+                        val message: Message<UserRegister> = MessageBuilder
+                            .withPayload(userRegister)
+                            .setHeader(KafkaHeaders.TOPIC, topic)
+                            .build()
+                        kafkaTemplate.send(message)
+
+                        log.info("Message sent with success")
+                    } catch (e: Exception) {
+                        log.error("Exception: $e", e)
+                    }
+
                     return Pair(HttpStatus.CREATED, ValidateDTO(userDTO.id!!, userDTO.username, userDTO.email))
                 }
             } ?: return Pair(HttpStatus.NOT_FOUND, null)
@@ -292,8 +321,8 @@ class RegisterService {
                         userRepository.deleteById(it1).subscribe()
                     }
                     println("Removed expired user")
-                //}.doFinally {
-                //    println("select * from activation a where a.deadline < now()")
+                    //}.doFinally {
+                    //    println("select * from activation a where a.deadline < now()")
                 }
                 .subscribe()
         }

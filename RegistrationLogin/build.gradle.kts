@@ -33,7 +33,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.springframework.cloud:spring-cloud-starter-sleuth")
-    //implementation("org.springframework.kafka:spring-kafka")
+    implementation("org.springframework.kafka:spring-kafka")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("io.r2dbc:r2dbc-postgresql")
     implementation("org.postgresql:postgresql")
@@ -53,7 +53,7 @@ dependencies {
     testImplementation ("org.testcontainers:junit-jupiter:1.17.3")
     testImplementation("org.testcontainers:postgresql:1.17.3")
     testImplementation("org.testcontainers:r2dbc:1.17.3")
-    //testImplementation("org.springframework.kafka:spring-kafka-test")
+    testImplementation("org.springframework.kafka:spring-kafka-test")
 }
 
 dependencyManagement {

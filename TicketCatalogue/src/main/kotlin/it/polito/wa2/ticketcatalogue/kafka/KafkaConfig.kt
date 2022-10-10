@@ -4,6 +4,7 @@ import it.polito.wa2.ticketcatalogue.entities.PurchaseOrder
 import it.polito.wa2.ticketcatalogue.entities.PurchaseOutcome
 import it.polito.wa2.ticketcatalogue.entities.TicketAddition
 import org.apache.kafka.clients.admin.AdminClientConfig
+import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
@@ -32,11 +33,14 @@ class KafkaConfig(
         return KafkaAdmin(configs)
     }
 
-    // TODO I don't really think this is necessary :/
-//    @Bean
-//    fun createTopic(): NewTopic {
-//        return NewTopic(purchaseOrderTopic, 1, 1.toShort())
-//    }
+    @Bean
+    fun createPurchaseTopic(): NewTopic {
+        return NewTopic(purchaseOrderTopic, 1, 1.toShort())
+    }
+    @Bean
+    fun createTicketTopic(): NewTopic {
+        return NewTopic(addTicketsTopic, 1, 1.toShort())
+    }
 
     @Bean
     fun consumerPurchaseOutcomeFactory(): ConsumerFactory<String?, PurchaseOutcome?> {
