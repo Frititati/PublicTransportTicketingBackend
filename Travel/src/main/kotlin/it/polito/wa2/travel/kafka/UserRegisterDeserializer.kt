@@ -11,7 +11,7 @@ class UserRegisterDeserializer : Deserializer<UserRegister> {
     private val log = LoggerFactory.getLogger(javaClass)
 
     override fun deserialize(topic: String?, data: ByteArray?): UserRegister? {
-        log.info("Deserializing...")
+        log.info("Deserializing... user")
         return objectMapper.readValue(
             String(
                 data ?: throw SerializationException("Error when deserializing byte[] to UserRegister"), Charsets.UTF_8

@@ -11,7 +11,7 @@ class TicketAdditionDeserializer : Deserializer<TicketAddition> {
     private val log = LoggerFactory.getLogger(javaClass)
 
     override fun deserialize(topic: String?, data: ByteArray?): TicketAddition? {
-        log.info("Deserializing...")
+        log.info("Deserializing... ticket")
         return objectMapper.readValue(
             String(
                 data ?: throw SerializationException("Error when deserializing byte[] to TicketAddition"),

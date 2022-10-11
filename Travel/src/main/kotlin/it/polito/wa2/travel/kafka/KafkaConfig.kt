@@ -1,10 +1,7 @@
 package it.polito.wa2.travel.kafka
 
-
 import it.polito.wa2.travel.entities.TicketAddition
 import it.polito.wa2.travel.entities.UserRegister
-import org.apache.kafka.clients.admin.AdminClientConfig
-import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.springframework.beans.factory.annotation.Value
@@ -13,21 +10,12 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory
 import org.springframework.kafka.core.ConsumerFactory
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory
-import org.springframework.kafka.core.KafkaAdmin
 import org.springframework.kafka.listener.ContainerProperties
 
 @Configuration
 class KafkaConfig(
-    @Value("\${kafka.bootstrapAddress}")
-    private val servers: String
+    @Value("\${kafka.bootstrapAddress}") private val servers: String
 ) {
-
-    @Bean
-    fun kafkaAdmin(): KafkaAdmin {
-        val configs: MutableMap<String, Any?> = HashMap()
-        configs[AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG] = servers
-        return KafkaAdmin(configs)
-    }
 
     @Bean
     fun consumerTicketAdditionFactory(): ConsumerFactory<String?, TicketAddition?> {
@@ -40,7 +28,7 @@ class KafkaConfig(
         return DefaultKafkaConsumerFactory(props)
     }
 
-    @Bean
+    @Bean("kafkaListenerContainerFactory")
     fun kafkaListenerContainerFactory(): ConcurrentKafkaListenerContainerFactory<String, TicketAddition>? {
         val factory = ConcurrentKafkaListenerContainerFactory<String, TicketAddition>()
         factory.consumerFactory = consumerTicketAdditionFactory()
@@ -60,7 +48,7 @@ class KafkaConfig(
         return DefaultKafkaConsumerFactory(props)
     }
 
-    @Bean
+    @Bean("userKafkaListenerContainerFactory")
     fun userKafkaListenerContainerFactory(): ConcurrentKafkaListenerContainerFactory<String, UserRegister>? {
         val factory = ConcurrentKafkaListenerContainerFactory<String, UserRegister>()
         factory.consumerFactory = consumerUserRegisterFactory()

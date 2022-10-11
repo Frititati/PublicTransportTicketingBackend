@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS ticket_purchased (
 
 CREATE TABLE IF NOT EXISTS user_details (
         id serial PRIMARY KEY,
-        nickname varchar,
+        username varchar,
         "name" varchar,
         address varchar,
         date_of_birth timestamp,

@@ -15,9 +15,13 @@ import org.springframework.stereotype.Component
 class UserRegisterHandler(val travelerService: TravelerService) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    @KafkaListener(topics = ["\${kafka.topics.userRegister}"], groupId = "ppr1")
+    @KafkaListener(
+        topics = ["\${kafka.topics.userRegister}"],
+        groupId = "ppr1",
+        containerFactory = "userKafkaListenerContainerFactory"
+    )
     fun listenPurchaseOutcome(consumerRecord: ConsumerRecord<Any, Any>, ack: Acknowledgment) {
-        logger.info("Message received {}", consumerRecord)
+        logger.info("Message received user {}", consumerRecord)
         ack.acknowledge()
 
         CoroutineScope(Dispatchers.Default).launch {

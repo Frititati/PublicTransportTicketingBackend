@@ -2,7 +2,7 @@ package it.polito.wa2.travel.controllers
 
 import it.polito.wa2.travel.dtos.TicketPurchasedDTO
 import it.polito.wa2.travel.dtos.UserDetailsDTO
-import it.polito.wa2.travel.dtos.UserNicknameDTO
+import it.polito.wa2.travel.dtos.UsernameDTO
 import it.polito.wa2.travel.services.TravelerService
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import org.springframework.http.ResponseEntity
@@ -15,20 +15,20 @@ import reactor.core.publisher.Flux
 class AdminEndpoint(val travelerService: TravelerService) {
 
     @GetMapping("/admin/travelers")
-    suspend fun getUsernames(): ResponseEntity<Flux<UserNicknameDTO>?> {
+    suspend fun getUsernames(): ResponseEntity<Flux<UsernameDTO>?> {
         val result = travelerService.getTravelers()
         return ResponseEntity(result.second, result.first)
     }
 
-    @GetMapping("/admin/traveler/{nickname}/profile")
-    suspend fun getUserProfile(@PathVariable nickname: String): ResponseEntity<UserDetailsDTO?> {
-        val result = travelerService.getUserProfile(nickname)
+    @GetMapping("/admin/traveler/{username}/profile")
+    suspend fun getUserProfile(@PathVariable username: String): ResponseEntity<UserDetailsDTO?> {
+        val result = travelerService.getUserProfile(username)
         return ResponseEntity(result.second.awaitFirstOrNull(), result.first)
     }
 
-    @GetMapping("/admin/traveler/{nickname}/tickets")
-    suspend fun getUserTickets(@PathVariable nickname: String): ResponseEntity<Flux<TicketPurchasedDTO>?> {
-        val result = travelerService.getUserTickets(nickname)
+    @GetMapping("/admin/traveler/{username}/tickets")
+    suspend fun getUserTickets(@PathVariable username: String): ResponseEntity<Flux<TicketPurchasedDTO>?> {
+        val result = travelerService.getUserTickets(username)
         return ResponseEntity(result.second, result.first)
     }
 }

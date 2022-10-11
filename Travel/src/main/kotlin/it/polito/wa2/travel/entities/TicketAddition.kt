@@ -11,6 +11,6 @@ data class TicketAddition(
     val type: TicketType,
     @JsonProperty("exp")
     val exp: String?,
-    @JsonProperty("userNickName")
-    val userNickName: String
+    @JsonProperty("username")
+    val username: String
 )

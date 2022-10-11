@@ -10,8 +10,8 @@ class UserDetails (
     @Id
     @Column("id")
     var id : Long?,
-    @Column("nickname")
-    val nickname: String,
+    @Column("username")
+    val username: String,
     @Column("name")
     var name : String?,
     @Column("address")

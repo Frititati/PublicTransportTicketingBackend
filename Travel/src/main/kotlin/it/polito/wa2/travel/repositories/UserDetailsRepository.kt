@@ -7,7 +7,7 @@ import reactor.core.publisher.Mono
 
 @Repository
 interface UserDetailsRepository : R2dbcRepository<UserDetails, Long> {
-    fun findOneByNickname(nickname: String): Mono<UserDetails>
+    fun findOneByUsername(username: String): Mono<UserDetails>
 
-    fun existsUserDetailsByNickname(nickname: String) : Mono<Boolean>
+    fun existsUserDetailsByUsername(username: String) : Mono<Boolean>
 }

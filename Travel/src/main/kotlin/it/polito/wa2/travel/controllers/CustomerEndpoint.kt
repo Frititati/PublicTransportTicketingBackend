@@ -18,7 +18,9 @@ class CustomerEndpoint(val travelerService: TravelerService) {
 
     @GetMapping("/my/profile")
     suspend fun getProfile(): ResponseEntity<UserDetailsDTO> {
-        val result = travelerService.getUserByNickname()
+        val username = ReactiveSecurityContextHolder.getContext()
+            .map { obj: SecurityContext -> obj.authentication.principal as String }.awaitLast()
+        val result = travelerService.getUserProfile(username)
         return ResponseEntity(result.second.awaitFirstOrNull(), result.first)
     }
 
@@ -31,32 +33,10 @@ class CustomerEndpoint(val travelerService: TravelerService) {
 
     @GetMapping("/my/tickets")
     suspend fun getTickets(): ResponseEntity<Flux<TicketPurchasedDTO>> {
-        val nickname = ReactiveSecurityContextHolder.getContext()
+        val username = ReactiveSecurityContextHolder.getContext()
             .map { obj: SecurityContext -> obj.authentication.principal as String }.awaitLast()
-        val result = travelerService.getUserTickets(nickname)
+        val result = travelerService.getUserTickets(username)
         return ResponseEntity(result.second, result.first)
     }
-
-//    @PostMapping("/my/tickets")
-//    suspend fun buyTickets(@RequestBody ticketPurchase: TicketPurchase): ResponseEntity<List<TicketPurchasedDTO>?> {
-//        // INFO please note that this is called by TicketCatalogue, not by a user
-//        return if (travelerService.validatePurchaseTicket(ticketPurchase)) {
-//            println(ticketPurchase)
-//            //val tickets = travelerService.createTickets(nickname, ticketPurchase.quantity, ticketPurchase.zones)
-//            val result = travelerService.addTickets(ticketPurchase.quantity, ticketPurchase.zones, ticketPurchase.type, ticketPurchase.exp)
-//            println(result.second)
-//            ResponseEntity(result.second, result.first)
-//        } else {
-//            ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null)
-//        }
-//    }
 }
-
-data class TicketPurchase(
-    val cmd: String,
-    val quantity: Int,
-    val zones: String,
-    val type: String,
-    val exp: LocalDateTime?
-)
 
