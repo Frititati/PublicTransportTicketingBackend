@@ -30,8 +30,7 @@ import java.util.stream.Collectors
 
 @Service
 class AdminService(
-    @Value("\${application.travelerUri}")
-    var travelerUri: String,
+    @Value("\${application.travelerUri}") var travelerUri: String,
 ) {
 
     @Autowired
@@ -61,8 +60,7 @@ class AdminService(
                             TicketType.valueOf(ticket.type),
                             ticket.minAge ?: 0,
                             ticket.maxAge ?: 99,
-                            ticket.zones.joinToString(prefix = "[", postfix = "]", separator = ",")
-                            //TODO: future problem (fili)
+                            ticket.zones
                         )
                     ).map { it.toDTO() }.awaitLast()
                 )
@@ -90,8 +88,7 @@ class AdminService(
         else {
             return try {
 
-                val orders = if (timeReport === null)
-                    ordersRepository.findAll().collectList().awaitFirstOrNull()
+                val orders = if (timeReport === null) ordersRepository.findAll().collectList().awaitFirstOrNull()
                 else {
                     val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
                     val startDate = LocalDate.parse(timeReport.initialDate, dateFormatter)
@@ -104,16 +101,11 @@ class AdminService(
                         endDateTime = a
                     }
                     ordersRepository.findOrderByPurchaseDateGreaterThanEqualAndPurchaseDateLessThanEqual(
-                        startDateTime,
-                        endDateTime
+                        startDateTime, endDateTime
                     ).collectList().awaitLast()
                 }
-                val client = webClient.get()
-                    .uri("/admin/travelers")
-                    .header("Authorization", "$prefixHeader$jwt")
-                    .accept(MediaType.APPLICATION_JSON)
-                    .retrieve()
-                    .bodyToMono(Array<Any>::class.java).log()
+                val client = webClient.get().uri("/admin/travelers").header("Authorization", "$prefixHeader$jwt")
+                    .accept(MediaType.APPLICATION_JSON).retrieve().bodyToMono(Array<Any>::class.java).log()
 
 
                 val objects: Array<Any>? = withContext(Dispatchers.IO) {
@@ -122,13 +114,10 @@ class AdminService(
 
                 val mapper = ObjectMapper()
 
-                val result = Arrays.stream(objects)
-                    .map { mapper.convertValue(it, String::class.java) }
-                    .map {
+                val result = Arrays.stream(objects).map { mapper.convertValue(it, String::class.java) }.map {
                         val userOrders = orders?.filter { user -> user.nickname == it }
                         return@map userOrders?.let { it1 -> UserOrdersDTO(it, it1) }
-                    }
-                    .collect(Collectors.toList())
+                    }.collect(Collectors.toList())
 
                 Pair(HttpStatus.OK, result)
 
@@ -145,10 +134,8 @@ class AdminService(
 
 
         return try {
-            val client = webClient.get()
-                .uri("/admin/traveler/{userId}/profile", userId)
-                .header("Authorization", "$prefixHeader$jwt")
-                .accept(MediaType.APPLICATION_JSON)
+            val client = webClient.get().uri("/admin/traveler/{userId}/profile", userId)
+                .header("Authorization", "$prefixHeader$jwt").accept(MediaType.APPLICATION_JSON)
                 .exchangeToMono { response ->
                     if (response.statusCode() == HttpStatus.OK) {
                         response.bodyToMono(UserDetailsDTO::class.java)
@@ -165,8 +152,7 @@ class AdminService(
 
     suspend fun getUserOrders(userId: String, timeReport: TimeReportDTO?): Pair<HttpStatus, Flux<OrderDTO>> {
         return try {
-            val result = if (timeReport === null)
-                ordersRepository.findAllByNickname(userId).map { it.toDTO() }
+            val result = if (timeReport === null) ordersRepository.findAllByNickname(userId).map { it.toDTO() }
             else {
                 val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
                 val startDate = LocalDate.parse(timeReport.initialDate, dateFormatter)
@@ -179,9 +165,7 @@ class AdminService(
                     endDateTime = a
                 }
                 ordersRepository.findOrderByPurchaseDateGreaterThanEqualAndPurchaseDateLessThanEqualAndNickname(
-                    startDateTime,
-                    endDateTime,
-                    userId
+                    startDateTime, endDateTime, userId
                 ).map { it.toDTO() }
             }
             Pair(HttpStatus.OK, result)
@@ -197,11 +181,7 @@ class AdminService(
             ticket.minAge !== null && ticket.minAge > 99L -> false
             ticket.maxAge !== null && ticket.maxAge < 0L -> false
             ticket.maxAge !== null && ticket.maxAge > 99L -> false
-            ticket.type != TicketType.DAILY.toString() &&
-                    ticket.type != TicketType.SINGLE.toString() &&
-                    ticket.type != TicketType.MONTHLY.toString() &&
-                    ticket.type != TicketType.WEEKLY.toString() &&
-                    ticket.type != TicketType.YEARLY.toString() -> false
+            ticket.type != TicketType.DAILY.toString() && ticket.type != TicketType.SINGLE.toString() && ticket.type != TicketType.MONTHLY.toString() && ticket.type != TicketType.WEEKLY.toString() && ticket.type != TicketType.YEARLY.toString() -> false
 
             else -> true
 

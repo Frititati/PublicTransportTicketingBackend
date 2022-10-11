@@ -100,8 +100,7 @@ class TravelerService {
             val tickets: MutableList<TicketPurchasedDTO> = mutableListOf()
             for (i in 1..ticketAddition.quantity) {
                 val uuid = UUID.randomUUID()
-                // TODO this time is wrong (fili)
-                val expiresAt = LocalDateTime.now().plusHours(1)
+                val expiresAt = ticketAddition.type.exp
                 val issuedAt = LocalDateTime.now()
 
                 val jwt = Jwts.builder().setSubject(uuid.toString())

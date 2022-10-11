@@ -5,5 +5,5 @@ data class AvailableTicketCreationDTO(
     val type: String,
     val minAge : Long?,
     val maxAge : Long?,
-    val zones : Set<String>
+    val zones : String
 )

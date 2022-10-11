@@ -9,8 +9,6 @@ data class TicketAddition(
     val zones: String,
     @JsonProperty("type")
     val type: TicketType,
-    @JsonProperty("exp")
-    val exp: String?,
     @JsonProperty("username")
     val username: String
 )
