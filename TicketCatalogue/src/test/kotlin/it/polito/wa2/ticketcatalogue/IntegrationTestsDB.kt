@@ -123,6 +123,19 @@ class IntegrationTestsDB {
     }
 
     @Test
+    fun addTickets_MinAgeNull() {
+        val baseUrl = "http://localhost:$port/admin"
+
+        val auth = HttpHeaders()
+        auth.set("Authorization", createJWT("Admin", Role.ADMIN))
+
+        val ticket = AvailableTicketCreationDTO(10.0, "DAILY", null, 99, "A")
+        val request = HttpEntity(ticket, auth)
+        val response = restTemplate.postForEntity<Unit>("$baseUrl/tickets", request)
+        assert(response.statusCode == HttpStatus.BAD_REQUEST)
+    }
+
+    @Test
     fun addTickets_MinAgeBiggerEqualThan100() {
         val baseUrl = "http://localhost:$port/admin"
 
@@ -143,6 +156,19 @@ class IntegrationTestsDB {
         auth.set("Authorization", createJWT("Admin", Role.ADMIN))
 
         val ticket = AvailableTicketCreationDTO(10.0, "DAILY", 0, -1, "A")
+        val request = HttpEntity(ticket, auth)
+        val response = restTemplate.postForEntity<Unit>("$baseUrl/tickets", request)
+        assert(response.statusCode == HttpStatus.BAD_REQUEST)
+    }
+
+    @Test
+    fun addTickets_MaxAgeNull() {
+        val baseUrl = "http://localhost:$port/admin"
+
+        val auth = HttpHeaders()
+        auth.set("Authorization", createJWT("Admin", Role.ADMIN))
+
+        val ticket = AvailableTicketCreationDTO(10.0, "DAILY", 0, null, "A")
         val request = HttpEntity(ticket, auth)
         val response = restTemplate.postForEntity<Unit>("$baseUrl/tickets", request)
         assert(response.statusCode == HttpStatus.BAD_REQUEST)
@@ -266,7 +292,7 @@ class IntegrationTestsDB {
         val entity = HttpEntity<String>("", auth)
 
         val response = restTemplate.exchange("$baseUrl/users", HttpMethod.GET, entity, String::class.java)
-        assert(response.statusCode == HttpStatus.BAD_REQUEST)
+        assert(response.statusCode == HttpStatus.OK)
     }
 
     @Test
@@ -407,6 +433,23 @@ class IntegrationTestsDB {
 
         val response = restTemplate.postForEntity<Unit>("$baseUrl/shop/1", request)
         assert(response.statusCode == HttpStatus.OK)
+    }
+
+    @Test
+    fun purchaseTicket_WrongTicketID() {
+
+        addTickets_Correctly()
+
+        val baseUrl = "http://localhost:$port"
+
+        val auth = HttpHeaders()
+        auth.set("Authorization", createJWT("User", Role.CUSTOMER))
+
+        val purchase = PurchaseRequestDTO(5, 12345678912345, "01-2021", 123, "Test")
+        val request = HttpEntity(purchase, auth)
+
+        val response = restTemplate.postForEntity<Unit>("$baseUrl/shop/500", request)
+        assert(response.statusCode == HttpStatus.BAD_REQUEST)
     }
 
     @Test

@@ -90,18 +90,9 @@ class AdminService(
 
                 val orders = if (timeReport === null) ordersRepository.findAll().collectList().awaitFirstOrNull()
                 else {
-                    val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-                    val startDate = LocalDate.parse(timeReport.initialDate, dateFormatter)
-                    var startDateTime = LocalDateTime.of(startDate, LocalTime.of(0, 0))
-                    val endDate = LocalDate.parse(timeReport.finalDate, dateFormatter)
-                    var endDateTime = LocalDateTime.of(endDate, LocalTime.of(23, 59))
-                    if (startDateTime.isAfter(endDateTime)) {
-                        val a = startDateTime
-                        startDateTime = endDateTime
-                        endDateTime = a
-                    }
+                    val formattedDate = formatDate(timeReport)
                     ordersRepository.findOrderByPurchaseDateGreaterThanEqualAndPurchaseDateLessThanEqual(
-                        startDateTime, endDateTime
+                        formattedDate.first, formattedDate.second
                     ).collectList().awaitLast()
                 }
                 val client = webClient.get().uri("/admin/travelers").header("Authorization", "$prefixHeader$jwt")
@@ -154,18 +145,9 @@ class AdminService(
         return try {
             val result = if (timeReport === null) ordersRepository.findAllByNickname(userId).map { it.toDTO() }
             else {
-                val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-                val startDate = LocalDate.parse(timeReport.initialDate, dateFormatter)
-                var startDateTime = LocalDateTime.of(startDate, LocalTime.of(0, 0))
-                val endDate = LocalDate.parse(timeReport.finalDate, dateFormatter)
-                var endDateTime = LocalDateTime.of(endDate, LocalTime.of(23, 59))
-                if (startDateTime.isAfter(endDateTime)) {
-                    val a = startDateTime
-                    startDateTime = endDateTime
-                    endDateTime = a
-                }
+                val formattedDate = formatDate(timeReport)
                 ordersRepository.findOrderByPurchaseDateGreaterThanEqualAndPurchaseDateLessThanEqualAndNickname(
-                    startDateTime, endDateTime, userId
+                    formattedDate.first, formattedDate.second, userId
                 ).map { it.toDTO() }
             }
             Pair(HttpStatus.OK, result)
@@ -177,14 +159,35 @@ class AdminService(
 
     fun checkFields(ticket: AvailableTicketCreationDTO): Boolean {
         return when {
-            ticket.minAge !== null && ticket.minAge < 0L -> false
-            ticket.minAge !== null && ticket.minAge > 99L -> false
-            ticket.maxAge !== null && ticket.maxAge < 0L -> false
-            ticket.maxAge !== null && ticket.maxAge > 99L -> false
+            ticket.minAge === null -> false
+            ticket.maxAge === null -> false
+            ticket.minAge < 0L -> false
+            ticket.minAge > 99L -> false
+            ticket.maxAge < 0L -> false
+            ticket.maxAge > 99L -> false
             ticket.type != TicketType.DAILY.toString() && ticket.type != TicketType.SINGLE.toString() && ticket.type != TicketType.MONTHLY.toString() && ticket.type != TicketType.WEEKLY.toString() && ticket.type != TicketType.YEARLY.toString() -> false
 
             else -> true
 
         }
+    }
+
+    /**
+     * @param timeReport contains initialDate and finalDate inserted by the user in the yyyy-MM-dd format
+     *
+     * @return Pair with initialDate and finalDate in LocalDateTime format
+     */
+    suspend fun formatDate(timeReport: TimeReportDTO): Pair<LocalDateTime, LocalDateTime> {
+        val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        val startDate = LocalDate.parse(timeReport.initialDate, dateFormatter)
+        var startDateTime = LocalDateTime.of(startDate, LocalTime.of(0, 0))
+        val endDate = LocalDate.parse(timeReport.finalDate, dateFormatter)
+        var endDateTime = LocalDateTime.of(endDate, LocalTime.of(23, 59))
+        if (startDateTime.isAfter(endDateTime)) {
+            val a = startDateTime
+            startDateTime = endDateTime
+            endDateTime = a
+        }
+        return Pair(startDateTime, endDateTime)
     }
 }

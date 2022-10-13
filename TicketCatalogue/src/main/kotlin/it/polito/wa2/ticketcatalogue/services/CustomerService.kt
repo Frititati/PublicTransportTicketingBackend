@@ -134,8 +134,8 @@ class CustomerService(
             val order = ordersRepository.findById(orderId).awaitFirstOrNull()
 
             val nickName = ReactiveSecurityContextHolder.getContext()
-                .map { obj: SecurityContext -> obj.authentication.principal as PrincipalUserDTO }.awaitLast().nickname!!
-
+                .map { obj: SecurityContext -> obj.authentication.principal as PrincipalUserDTO }.awaitFirstOrNull()?.nickname
+                ?: return Pair(HttpStatus.BAD_REQUEST, null)
             if (order?.nickname == nickName)
                 Pair(HttpStatus.OK, order.toDTO())
             else Pair(HttpStatus.UNAUTHORIZED, null)
@@ -272,26 +272,28 @@ class CustomerService(
     suspend fun processPurchaseOutcome(purchaseOutcome: PurchaseOutcome) {
         try {
             // initially we update the order
-            val orderInfo = ordersRepository.findById(purchaseOutcome.transactionId).awaitLast()
-            orderInfo.status = purchaseOutcome.status
-            ordersRepository.save(orderInfo).awaitLast()
+            val orderInfo = ordersRepository.findById(purchaseOutcome.transactionId).awaitFirstOrNull()
+            if (orderInfo != null) {
+                orderInfo.status = purchaseOutcome.status
+                ordersRepository.save(orderInfo).awaitLast()
 
-            if (purchaseOutcome.status == PaymentStatus.ACCEPTED) {
-                // then we ask Travel Microservice to generate the tickets
-                val ticketAvailable = availableTicketsRepository.findById(orderInfo.ticketId).awaitLast()
-                val ticketsToAdd = TicketAddition(
-                    orderInfo.numberTickets,
-                    ticketAvailable.zones,
-                    ticketAvailable.type,
-                    orderInfo.nickname
-                )
-                log.info("Sending message via Kafka {}", ticketsToAdd)
-                val message: Message<TicketAddition> = MessageBuilder
-                    .withPayload(ticketsToAdd)
-                    .setHeader(KafkaHeaders.TOPIC, addTicketTopic)
-                    .build()
-                ticketAdditionKafkaTemplate.send(message).await()
-                log.info("Message sent with success")
+                if (purchaseOutcome.status == PaymentStatus.ACCEPTED) {
+                    // then we ask Travel Microservice to generate the tickets
+                    val ticketAvailable = availableTicketsRepository.findById(orderInfo.ticketId).awaitLast()
+                    val ticketsToAdd = TicketAddition(
+                        orderInfo.numberTickets,
+                        ticketAvailable.zones,
+                        ticketAvailable.type,
+                        orderInfo.nickname
+                    )
+                    log.info("Sending message via Kafka {}", ticketsToAdd)
+                    val message: Message<TicketAddition> = MessageBuilder
+                        .withPayload(ticketsToAdd)
+                        .setHeader(KafkaHeaders.TOPIC, addTicketTopic)
+                        .build()
+                    ticketAdditionKafkaTemplate.send(message).await()
+                    log.info("Message sent with success")
+                }
             }
 
         } catch (e: Exception) {
