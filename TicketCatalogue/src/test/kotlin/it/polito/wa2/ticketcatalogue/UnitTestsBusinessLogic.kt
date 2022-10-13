@@ -73,7 +73,7 @@ class UnitTestsBusinessLogic {
     @WithMockCustomUser(username = "TestUser", role = "CUSTOMER")
     fun purchaseTickets_ticketAge099() = runBlocking {
 
-        val availableTicket = AvailableTicketCreationDTO(10.0, "DAILY", 0 ,99, setOf("A"))
+        val availableTicket = AvailableTicketCreationDTO(10.0, "DAILY", 0 ,99, "A")
         val ticket = adminService.addTicket(availableTicket)
 
         val purchaseRequest = PurchaseRequestDTO(10, 12345678912345,"11-2021",123,"Test")
@@ -99,7 +99,7 @@ class UnitTestsBusinessLogic {
     @WithMockCustomUser(username = "TestUser", role = "CUSTOMER")
     fun purchaseTickets_ticketAgeLimited() = runBlocking {
 
-        val availableTicket = AvailableTicketCreationDTO(10.0, "DAILY", 15 ,99, setOf("A"))
+        val availableTicket = AvailableTicketCreationDTO(10.0, "DAILY", 15 ,99, "A")
         val ticket = adminService.addTicket(availableTicket)
 
 
@@ -129,7 +129,7 @@ class UnitTestsBusinessLogic {
 
     @Test
     fun addTicket_Correctly() = runBlocking {
-        val availableTicket = AvailableTicketCreationDTO(10.0, "DAILY", 0 ,99, setOf("A"))
+        val availableTicket = AvailableTicketCreationDTO(10.0, "DAILY", 0 ,99, "A")
         val ticket = adminService.addTicket(availableTicket)
 
         availableTicketsRepository.deleteById(ticket.second?.ticketId!!).subscribe()
@@ -138,7 +138,7 @@ class UnitTestsBusinessLogic {
 
     @Test
     fun addTicket_minAgeMajor99() = runBlocking {
-        val availableTicket = AvailableTicketCreationDTO(10.0, "DAILY", 100,99, setOf("A"))
+        val availableTicket = AvailableTicketCreationDTO(10.0, "DAILY", 100,99, "A")
         val ticket = adminService.addTicket(availableTicket)
 
         Assertions.assertEquals(HttpStatus.BAD_REQUEST, ticket.first)
@@ -146,7 +146,7 @@ class UnitTestsBusinessLogic {
 
     @Test
     fun addTicket_maxAgeMajor99() = runBlocking {
-        val availableTicket = AvailableTicketCreationDTO(10.0, "DAILY", 0 ,100, setOf("A"))
+        val availableTicket = AvailableTicketCreationDTO(10.0, "DAILY", 0 ,100, "A")
         val ticket = adminService.addTicket(availableTicket)
 
         Assertions.assertEquals(HttpStatus.BAD_REQUEST, ticket.first)
@@ -154,7 +154,7 @@ class UnitTestsBusinessLogic {
 
     @Test
     fun addTicket_typeWrong() = runBlocking {
-        val availableTicket = AvailableTicketCreationDTO(10.0, "AA", 0 ,99, setOf("A"))
+        val availableTicket = AvailableTicketCreationDTO(10.0, "AA", 0 ,99, "A")
         val ticket = adminService.addTicket(availableTicket)
 
         Assertions.assertEquals(HttpStatus.BAD_REQUEST, ticket.first)

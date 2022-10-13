@@ -15,6 +15,14 @@ class AdminService {
     @Autowired
     lateinit var userRepository: UserRepository
 
+    /**
+     * @param username String: name of the user
+     *
+     * If the user is active, it changes the role of the selected user from CUSTOMER to ADMIN
+     *
+     * @return HttpStatus 200 OK or 400 error
+     *         email of the user if everything is ok, otherwise null
+     */
     suspend fun updateUser(username: String): Pair<HttpStatus, UpdatedUserDTO?> {
         val userToUpdate = userRepository.findByUsername(username).awaitFirstOrNull()
 

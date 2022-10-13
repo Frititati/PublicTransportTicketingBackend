@@ -116,7 +116,7 @@ class IntegrationTestsDB {
         val auth = HttpHeaders()
         auth.set("Authorization", createJWT("Admin", Role.ADMIN))
 
-        val ticket = AvailableTicketCreationDTO(10.0, "DAILY", -1, 99, setOf("A"))
+        val ticket = AvailableTicketCreationDTO(10.0, "DAILY", -1, 99, "A")
         val request = HttpEntity(ticket, auth)
         val response = restTemplate.postForEntity<Unit>("$baseUrl/tickets", request)
         assert(response.statusCode == HttpStatus.BAD_REQUEST)
@@ -129,7 +129,7 @@ class IntegrationTestsDB {
         val auth = HttpHeaders()
         auth.set("Authorization", createJWT("Admin", Role.ADMIN))
 
-        val ticket = AvailableTicketCreationDTO(10.0, "DAILY", 100, 99, setOf("A"))
+        val ticket = AvailableTicketCreationDTO(10.0, "DAILY", 100, 99, "A")
         val request = HttpEntity(ticket, auth)
         val response = restTemplate.postForEntity<Unit>("$baseUrl/tickets", request)
         assert(response.statusCode == HttpStatus.BAD_REQUEST)
@@ -142,7 +142,7 @@ class IntegrationTestsDB {
         val auth = HttpHeaders()
         auth.set("Authorization", createJWT("Admin", Role.ADMIN))
 
-        val ticket = AvailableTicketCreationDTO(10.0, "DAILY", 0, -1, setOf("A"))
+        val ticket = AvailableTicketCreationDTO(10.0, "DAILY", 0, -1, "A")
         val request = HttpEntity(ticket, auth)
         val response = restTemplate.postForEntity<Unit>("$baseUrl/tickets", request)
         assert(response.statusCode == HttpStatus.BAD_REQUEST)
@@ -155,7 +155,7 @@ class IntegrationTestsDB {
         val auth = HttpHeaders()
         auth.set("Authorization", createJWT("Admin", Role.ADMIN))
 
-        val ticket = AvailableTicketCreationDTO(10.0, "DAILY", 0, 100, setOf("A"))
+        val ticket = AvailableTicketCreationDTO(10.0, "DAILY", 0, 100, "A")
         val request = HttpEntity(ticket, auth)
         val response = restTemplate.postForEntity<Unit>("$baseUrl/tickets", request)
         assert(response.statusCode == HttpStatus.BAD_REQUEST)
@@ -168,7 +168,7 @@ class IntegrationTestsDB {
         val auth = HttpHeaders()
         auth.set("Authorization", createJWT("Admin", Role.ADMIN))
 
-        val ticket = AvailableTicketCreationDTO(10.0, "wrong", 0, 99, setOf("A"))
+        val ticket = AvailableTicketCreationDTO(10.0, "wrong", 0, 99, "A")
         val request = HttpEntity(ticket, auth)
         val response = restTemplate.postForEntity<Unit>("$baseUrl/tickets", request)
         assert(response.statusCode == HttpStatus.BAD_REQUEST)
@@ -181,7 +181,7 @@ class IntegrationTestsDB {
         val auth = HttpHeaders()
         auth.set("Authorization", createJWT("Admin", Role.ADMIN))
 
-        val ticket = AvailableTicketCreationDTO(10.0, "DAILY", 0, 99, setOf("A"))
+        val ticket = AvailableTicketCreationDTO(10.0, "DAILY", 0, 99, "A")
         val request = HttpEntity(ticket, auth)
         val response = restTemplate.postForEntity<Unit>("$baseUrl/tickets", request)
         assert(response.statusCode == HttpStatus.OK)
@@ -192,7 +192,7 @@ class IntegrationTestsDB {
         val baseUrl = "http://localhost:$port/admin"
 
 
-        val ticket = AvailableTicketCreationDTO(10.0, "DAILY", 0, 99, setOf("A"))
+        val ticket = AvailableTicketCreationDTO(10.0, "DAILY", 0, 99, "A")
         val request = HttpEntity(ticket)
         val response = restTemplate.postForEntity<Unit>("$baseUrl/tickets", request)
         assert(response.statusCode == HttpStatus.UNAUTHORIZED)
@@ -319,7 +319,8 @@ class IntegrationTestsDB {
         assert(response.statusCode == HttpStatus.UNAUTHORIZED)
     }
 
-    //TODO not working (Giacomo)
+
+    // Start the others microservices, otherwise the communication doesn't work and response is 400 instead of 200
     @Test
     fun getUsersWithOrdersTimePeriod_Correctly() {
         addTickets_Correctly()
@@ -333,8 +334,8 @@ class IntegrationTestsDB {
         val report = TimeReportDTO("2021-11-12","2022-11-12")
         val request = HttpEntity(report, auth)
 
-        val response = restTemplate.postForEntity<Unit>("$baseUrl/users", request)
-        assert(response.statusCode == HttpStatus.BAD_REQUEST)
+        val response = restTemplate.exchange("$baseUrl/users", HttpMethod.POST, request, String::class.java)
+        assert(response.statusCode == HttpStatus.OK)
     }
 
     @Test
@@ -354,8 +355,6 @@ class IntegrationTestsDB {
         assert(response.statusCode == HttpStatus.UNAUTHORIZED)
     }
 
-    /*
-    //TODO not working properly (Giacomo)
     @Test
     fun getUserOrdersTimePeriod_Correct() {
 
@@ -370,11 +369,9 @@ class IntegrationTestsDB {
         val report = TimeReportDTO("2021-11-12","2022-11-12")
         val request = HttpEntity(report, auth)
 
-        val response = restTemplate.postForEntity<Unit>("$baseUrl/users/1/orders", request)
+        val response = restTemplate.exchange("$baseUrl/users/1/orders", HttpMethod.POST, request, String::class.java)
         assert(response.statusCode == HttpStatus.OK)
     }
-
-     */
 
     @Test
     fun getUserOrdersTimePeriod_WithoutAuth() {

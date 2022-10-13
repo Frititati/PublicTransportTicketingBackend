@@ -284,6 +284,10 @@ class RegisterService(
 
                     val userDTO = userRow.toDTO()
 
+                    /**
+                     * Once the user is correctly validated, we send the information to the TravelService through Kafka
+                     * in a way that the profile of the user will be created automatically.
+                     */
                     try {
                         val userRegister = UserRegister(userRow.username)
                         log.info("Sending message to Kafka {}", userRegister)

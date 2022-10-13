@@ -10,7 +10,6 @@ import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import org.springframework.security.core.context.SecurityContext
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Flux
-import java.time.LocalDateTime
 import javax.validation.Valid
 
 @RestController
@@ -26,7 +25,7 @@ class CustomerEndpoint(val travelerService: TravelerService) {
 
     @PutMapping("/my/profile")
     suspend fun updateProfile(@Valid @RequestBody payload: UserDetailsDTO): ResponseEntity<Void> {
-        // TODO improve input for date of birth (Giacomo)
+        // pass date in yyyy-MM-dd format
         val result = travelerService.userUpdate(payload)
         return ResponseEntity(null, result)
     }

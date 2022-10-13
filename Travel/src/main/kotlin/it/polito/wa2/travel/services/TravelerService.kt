@@ -22,8 +22,11 @@ import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.nio.charset.StandardCharsets
+import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.*
 import javax.crypto.SecretKey
 
@@ -59,9 +62,18 @@ class TravelerService {
             .map { obj: SecurityContext -> obj.authentication.principal as String }.awaitLast()
         return try {
             if (userDetailsRepo.existsUserDetailsByUsername(username).awaitSingle()) {
+
+
+
                 val user = userDetailsRepo.findOneByUsername(username).awaitSingle()
                 user.address = userDetails.address
-                user.dateOfBirth = userDetails.dateOfBirth
+
+                val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+                val startDate = LocalDate.parse(userDetails.dateOfBirth, dateFormatter)
+                val finalDate = LocalDateTime.of(startDate, LocalTime.of(0, 0))
+
+
+                user.dateOfBirth = finalDate
                 user.name = userDetails.name
                 user.telephoneNumber = userDetails.telephoneNumber
                 userDetailsRepo.save(user).awaitLast()
