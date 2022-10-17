@@ -115,11 +115,11 @@ class CustomerService(
     suspend fun getOrders(): Pair<HttpStatus, List<OrderDTO>?> {
 
         return try {
-            val nickname = ReactiveSecurityContextHolder.getContext()
-                .map { obj: SecurityContext -> obj.authentication.principal as PrincipalUserDTO }.awaitFirstOrNull()?.nickname
+            val username = ReactiveSecurityContextHolder.getContext()
+                .map { obj: SecurityContext -> obj.authentication.principal as PrincipalUserDTO }.awaitFirstOrNull()?.username
                 ?: return Pair(HttpStatus.BAD_REQUEST, null)
 
-            val orders = ordersRepository.findAllByNickname(nickname).map { it.toDTO() }.collectList().awaitFirstOrNull()
+            val orders = ordersRepository.findAllByUsername(username).map { it.toDTO() }.collectList().awaitFirstOrNull()
 
             return Pair(HttpStatus.OK, orders)
         } catch (e: Exception) {
@@ -133,10 +133,10 @@ class CustomerService(
         return try {
             val order = ordersRepository.findById(orderId).awaitFirstOrNull()
 
-            val nickName = ReactiveSecurityContextHolder.getContext()
-                .map { obj: SecurityContext -> obj.authentication.principal as PrincipalUserDTO }.awaitFirstOrNull()?.nickname
+            val username = ReactiveSecurityContextHolder.getContext()
+                .map { obj: SecurityContext -> obj.authentication.principal as PrincipalUserDTO }.awaitFirstOrNull()?.username
                 ?: return Pair(HttpStatus.BAD_REQUEST, null)
-            if (order?.nickname == nickName)
+            if (order?.username == username)
                 Pair(HttpStatus.OK, order.toDTO())
             else Pair(HttpStatus.UNAUTHORIZED, null)
         } catch (e: Exception) {
@@ -220,7 +220,7 @@ class CustomerService(
             val totalPrice = ticket.price * purchaseRequest.numberOfTickets
             val userNickName = ReactiveSecurityContextHolder.getContext()
                 .map { obj: SecurityContext -> obj.authentication.principal as PrincipalUserDTO }
-                .awaitLast().nickname!!
+                .awaitLast().username!!
 
             // save order details to db
             val generatedOrder = ordersRepository.save(
@@ -284,7 +284,7 @@ class CustomerService(
                         orderInfo.numberTickets,
                         ticketAvailable.zones,
                         ticketAvailable.type,
-                        orderInfo.nickname
+                        orderInfo.username
                     )
                     log.info("Sending message via Kafka {}", ticketsToAdd)
                     val message: Message<TicketAddition> = MessageBuilder

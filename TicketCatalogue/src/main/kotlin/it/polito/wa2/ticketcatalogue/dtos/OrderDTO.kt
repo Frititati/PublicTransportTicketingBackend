@@ -6,7 +6,7 @@ import java.time.LocalDateTime
 
 data class OrderDTO(
     var id: Long?,
-    var nickname : String,
+    var username : String,
     var numberTickets: Int,
     var ticketId: Long,
     var status: PaymentStatus,
@@ -15,5 +15,5 @@ data class OrderDTO(
 )
 
 fun Order.toDTO() : OrderDTO {
-    return OrderDTO(id, nickname, numberTickets, ticketId, status, price, purchaseDate)
+    return OrderDTO(id, username, numberTickets, ticketId, status, price, purchaseDate)
 }

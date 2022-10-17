@@ -7,9 +7,9 @@ import java.time.LocalDateTime
 
 interface OrdersRepository : R2dbcRepository<Order, Long> {
 
-    fun findAllByNickname(nickname: String): Flux<Order>
+    fun findAllByUsername(username: String): Flux<Order>
 
     fun findOrderByPurchaseDateGreaterThanEqualAndPurchaseDateLessThanEqual(initialDate : LocalDateTime, finalDate: LocalDateTime) : Flux<Order>
 
-    fun findOrderByPurchaseDateGreaterThanEqualAndPurchaseDateLessThanEqualAndNickname(nitialDate : LocalDateTime, finalDate: LocalDateTime, nickname : String) : Flux<Order>
+    fun findOrderByPurchaseDateGreaterThanEqualAndPurchaseDateLessThanEqualAndUsername(initialDate : LocalDateTime, finalDate: LocalDateTime, username : String) : Flux<Order>
 }

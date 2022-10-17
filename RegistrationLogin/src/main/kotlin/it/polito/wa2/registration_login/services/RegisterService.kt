@@ -12,6 +12,7 @@ import it.polito.wa2.registration_login.security.Role
 import it.polito.wa2.registration_login.security.WebSecurityConfig
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactive.awaitLast
+import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -254,7 +255,7 @@ class RegisterService(
                 if (activationDTO.deadline.isBefore(LocalDateTime.now())) {
                     activationDTO.userId.let { user ->
                         if (user != null) {
-                            userRepository.deleteById(user).subscribe()
+                            userRepository.deleteById(user).awaitSingleOrNull()
                         }
                     }
                     return Pair(HttpStatus.NOT_FOUND, null)

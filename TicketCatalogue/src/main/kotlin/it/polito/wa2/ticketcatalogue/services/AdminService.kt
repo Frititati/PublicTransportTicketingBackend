@@ -106,7 +106,7 @@ class AdminService(
                 val mapper = ObjectMapper()
 
                 val result = Arrays.stream(objects).map { mapper.convertValue(it, String::class.java) }.map {
-                        val userOrders = orders?.filter { user -> user.nickname == it }
+                        val userOrders = orders?.filter { user -> user.username == it }
                         return@map userOrders?.let { it1 -> UserOrdersDTO(it, it1) }
                     }.collect(Collectors.toList())
 
@@ -143,10 +143,10 @@ class AdminService(
 
     suspend fun getUserOrders(userId: String, timeReport: TimeReportDTO?): Pair<HttpStatus, Flux<OrderDTO>> {
         return try {
-            val result = if (timeReport === null) ordersRepository.findAllByNickname(userId).map { it.toDTO() }
+            val result = if (timeReport === null) ordersRepository.findAllByUsername(userId).map { it.toDTO() }
             else {
                 val formattedDate = formatDate(timeReport)
-                ordersRepository.findOrderByPurchaseDateGreaterThanEqualAndPurchaseDateLessThanEqualAndNickname(
+                ordersRepository.findOrderByPurchaseDateGreaterThanEqualAndPurchaseDateLessThanEqualAndUsername(
                     formattedDate.first, formattedDate.second, userId
                 ).map { it.toDTO() }
             }

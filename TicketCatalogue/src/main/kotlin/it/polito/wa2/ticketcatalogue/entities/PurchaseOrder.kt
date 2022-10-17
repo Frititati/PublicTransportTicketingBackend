@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 
 data class PurchaseOrder(
     @JsonProperty("nickName")
-    val nickName: String,
+    val username: String,
     @JsonProperty("transactionId")
     val transactionId: Long,
     @JsonProperty("price")

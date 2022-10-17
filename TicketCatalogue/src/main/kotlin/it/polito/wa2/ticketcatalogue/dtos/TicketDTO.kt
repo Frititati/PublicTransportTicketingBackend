@@ -10,5 +10,5 @@ data class TicketDTO(
     val zid: String,
     val type: String,
     val jws: String,
-    val nickname: String
+    val username: String
 )
