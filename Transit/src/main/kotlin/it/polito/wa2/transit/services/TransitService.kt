@@ -55,6 +55,8 @@ class TransitService {
 
                 val zidTicket = Jwts.parserBuilder().setSigningKey(generatedKey).build()
                     .parseClaimsJws(ticket.jws).body["zid"].toString()
+                val type = Jwts.parserBuilder().setSigningKey(generatedKey).build()
+                    .parseClaimsJws(ticket.jws).body["type"].toString()
                 val nickname = Jwts.parserBuilder().setSigningKey(generatedKey).build()
                     .parseClaimsJws(ticket.jws).body["nickname"].toString()
                 val zidMachine = ReactiveSecurityContextHolder.getContext()
@@ -67,8 +69,8 @@ class TransitService {
                 //check match gate and ticket zone
                 return if (zidTicket.contains(zidMachine)) {
                     // check if ticket already exists inside db
-                    // if false there is no ticket with the same UUID, so the ticket is never used
-                    if (!ticketValidatedRepository.existsByTicketId(ticketId).awaitLast()) {
+                    // if false the ticket is daily and it already exists in the DB, so it's no longer valid.
+                    if ((type !== "DAILY") || (type==="DAILY" && !ticketValidatedRepository.existsByTicketId(ticketId).awaitLast() )) {
                         // save in repo
                         val entity = TicketValidated(null, ticketId, LocalDateTime.now(), zidTicket, nickname)
                         ticketValidatedRepository.save(entity).awaitLast()
