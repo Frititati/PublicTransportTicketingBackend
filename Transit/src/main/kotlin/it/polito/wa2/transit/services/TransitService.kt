@@ -42,9 +42,6 @@ class TransitService {
      *         information about the validated ticket like ticketId and validation date or null
      */
     suspend fun validateTicket(ticket: TicketToValidateDTO): Pair<HttpStatus, TicketValidatedDTO?> {
-        // TODO: da testare (Fra)
-
-
         if (ticket.jws.isEmpty()) return Pair(HttpStatus.BAD_REQUEST, null)
         else
             try {
