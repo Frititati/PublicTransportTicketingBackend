@@ -155,7 +155,7 @@ class TransitIntegrationTests {
         assert(response.statusCode == HttpStatus.OK)
     }
 
-    //TODO: discuss about ticket to insert for testing time period and its correspondent time period
+    //TODO: discuss if we have ticket to insert for testing and its correspondent time period
     @Test
     fun getTransitByOrderTimePeriod(){
         val baseUrl = "http://localhost:$port"
