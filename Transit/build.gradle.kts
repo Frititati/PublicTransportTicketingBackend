@@ -53,6 +53,7 @@ dependencies {
     testImplementation("org.testcontainers:postgresql:1.17.3")
     testImplementation("org.testcontainers:r2dbc:1.17.3")
     //testImplementation("org.springframework.kafka:spring-kafka-test")
+    testImplementation("org.springframework.security:spring-security-test")
 }
 
 dependencyManagement {
