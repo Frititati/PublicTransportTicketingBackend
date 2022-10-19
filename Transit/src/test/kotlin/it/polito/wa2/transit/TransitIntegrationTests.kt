@@ -95,6 +95,25 @@ class TransitIntegrationTests {
         return "$prefix$jwt"
     }
 
+    fun createJWTDevice(username:String, zone:String):String{
+        val generatedKey: SecretKey = Keys.hmacShaKeyFor(secretString.toByteArray(StandardCharsets.UTF_8))
+
+        val jwt = Jwts.builder()
+            .setSubject(username)
+            .setExpiration(
+                Date.from(
+                    LocalDateTime.now().plusHours(24).atZone(ZoneId.systemDefault()).toInstant()
+                )
+            )
+            .setIssuedAt(Date.from(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant()))
+            .claim("role", Role.DEVICE)
+            .claim("zone", zone)
+            .signWith(generatedKey)
+            .compact()
+
+        return "$prefix$jwt"
+    }
+
     fun createJWSTicket(uuid: String, expiresAt:LocalDateTime, issuedAt:LocalDateTime, type:String, zones:String, username:String): String {
 
         val generatedKey: SecretKey = Keys.hmacShaKeyFor(secretString.toByteArray(StandardCharsets.UTF_8))
@@ -165,7 +184,7 @@ class TransitIntegrationTests {
     fun ticketValidation(){
         val baseUrl = "http://localhost:$port"
         val auth = HttpHeaders()
-        auth.set("Authorization", createJWT("Device1", Role.DEVICE))
+        auth.set("Authorization", createJWTDevice("Device1", "A"))
 
         val jws = createJWSTicket("55e8bda8-4f86-11ed-bdc3-0242ac120002", LocalDateTime.now().plusHours(1), LocalDateTime.now(), "DAILY", "A", "prova1")
 
@@ -179,7 +198,7 @@ class TransitIntegrationTests {
     fun ticketValidationEmptyJws(){
         val baseUrl = "http://localhost:$port"
         val auth = HttpHeaders()
-        auth.set("Authorization", createJWT("Device1", Role.DEVICE))
+        auth.set("Authorization", createJWTDevice("Device1", "A"))
         val jws = ""
         val ticketToValidate = TicketToValidateDTO(jws)
         val request = HttpEntity(ticketToValidate, auth)
@@ -191,7 +210,7 @@ class TransitIntegrationTests {
     fun ticketValidationExpired(){
         val baseUrl = "http://localhost:$port"
         val auth = HttpHeaders()
-        auth.set("Authorization", createJWT("Device1", Role.DEVICE))
+        auth.set("Authorization", createJWTDevice("Device1", "A"))
 
         val jws = createJWSTicket("caa845b8-4f82-11ed-bdc3-0242ac120002", LocalDateTime.now().minusHours(1), LocalDateTime.now(), "DAILY", "A", "prova1")
 
@@ -205,7 +224,7 @@ class TransitIntegrationTests {
     fun dailyTicketValidationAlreadyValidated(){
         val baseUrl = "http://localhost:$port"
         val auth = HttpHeaders()
-        auth.set("Authorization", createJWT("Device1", Role.DEVICE))
+        auth.set("Authorization", createJWTDevice("Device1", "A"))
 
         val jws = createJWSTicket("1a2d5aec-4f83-11ed-bdc3-0242ac120002", LocalDateTime.now().plusHours(1), LocalDateTime.now(), "DAILY", "A", "prova1")
 
@@ -223,7 +242,7 @@ class TransitIntegrationTests {
     fun notDailyTicketMultipleValidation(){
         val baseUrl = "http://localhost:$port"
         val auth = HttpHeaders()
-        auth.set("Authorization", createJWT("Device1", Role.DEVICE))
+        auth.set("Authorization", createJWTDevice("Device1", "A"))
 
         val jws = createJWSTicket("1a2d5aec-4f83-11ed-bdc3-0242ac120002", LocalDateTime.now().plusHours(1), LocalDateTime.now(), "MONTHLY", "A", "prova1")
 
