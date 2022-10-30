@@ -24,10 +24,10 @@ class RateLimiterInterceptor : WebFilter {
         } else {
             val path = exchange.request.uri.path
             if (path.startsWith("/user")) {
-                chain.filter(exchange)
-            } else {
                 exchange.response.statusCode = HttpStatus.TOO_MANY_REQUESTS
                 exchange.response.setComplete()
+            } else {
+                chain.filter(exchange)
             }
         }
 

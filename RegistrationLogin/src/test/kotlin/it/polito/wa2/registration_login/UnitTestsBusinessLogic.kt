@@ -301,8 +301,8 @@ class UnitTestsBusinessLogic {
         val activationRowEmpty = activationRepository.findById(activation.id!!).awaitSingleOrNull()
         val userRowEmpty = userRepository.findById(user.id!!).awaitSingleOrNull()
 
-        Assertions.assertEquals(activationRowEmpty, null)
-        Assertions.assertEquals(userRowEmpty, null)
+        Assertions.assertEquals(null, activationRowEmpty)
+        Assertions.assertEquals(null, userRowEmpty)
     }
 
     @Test

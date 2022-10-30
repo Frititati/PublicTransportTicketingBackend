@@ -1,8 +1,11 @@
 package it.polito.wa2.ticketcatalogue
 
+import io.jsonwebtoken.Jwts
+import io.jsonwebtoken.security.Keys
 import it.polito.wa2.ticketcatalogue.dtos.*
 import it.polito.wa2.ticketcatalogue.repositories.AvailableTicketsRepository
 import it.polito.wa2.ticketcatalogue.repositories.OrdersRepository
+import it.polito.wa2.ticketcatalogue.security.Role
 import it.polito.wa2.ticketcatalogue.services.AdminService
 import it.polito.wa2.ticketcatalogue.services.CustomerService
 import it.polito.wa2.ticketcatalogue.services.TicketService
@@ -10,6 +13,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpStatus
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
@@ -20,6 +24,11 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.test.context.support.WithSecurityContext
 import org.springframework.security.test.context.support.WithSecurityContextFactory
 import org.springframework.test.context.ContextConfiguration
+import java.nio.charset.StandardCharsets
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.util.*
+import javax.crypto.SecretKey
 
 @SpringBootTest
 @ContextConfiguration
@@ -45,15 +54,37 @@ class UnitTestsBusinessLogic {
     annotation class WithMockCustomUser(val username: String, val role : String)
 
     class WithMockCustomUserSecurityContextFactory : WithSecurityContextFactory<WithMockCustomUser> {
+
+        @Value("\${application.loginKey}")
+        lateinit var secretString: String
+
         override fun createSecurityContext(customUser: WithMockCustomUser): SecurityContext {
             val context = SecurityContextHolder.createEmptyContext()
-            val principal = PrincipalUserDTO(customUser.username, "")
+            val principal = PrincipalUserDTO(customUser.username, createJWT(customUser.username, Role.valueOf(customUser.role)))
             val auth: Authentication =
                 UsernamePasswordAuthenticationToken(principal, null, mutableListOf(SimpleGrantedAuthority("ROLE_${customUser.role}")))
             context.authentication = auth
             return context
         }
+
+        fun createJWT(username: String, role: Role): String {
+
+            val generatedKey: SecretKey = Keys.hmacShaKeyFor(secretString.toByteArray(StandardCharsets.UTF_8))
+
+            return Jwts.builder()
+                .setSubject(username)
+                .setExpiration(
+                    Date.from(
+                        LocalDateTime.now().plusHours(1).atZone(ZoneId.systemDefault()).toInstant()
+                    )
+                )
+                .setIssuedAt(Date.from(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant()))
+                .claim("role", role)
+                .signWith(generatedKey)
+                .compact()
+        }
     }
+
 
     /** TICKETS */
 
@@ -73,7 +104,7 @@ class UnitTestsBusinessLogic {
     @WithMockCustomUser(username = "TestUser", role = "CUSTOMER")
     fun purchaseTickets_ticketAge099() = runBlocking {
 
-        val availableTicket = AvailableTicketCreationDTO(10.0, "DAILY", 0 ,99, setOf("A"))
+        val availableTicket = AvailableTicketCreationDTO(10.0, "DAILY", 0 ,99, "A")
         val ticket = adminService.addTicket(availableTicket)
 
         val purchaseRequest = PurchaseRequestDTO(10, 12345678912345,"11-2021",123,"Test")
@@ -99,7 +130,7 @@ class UnitTestsBusinessLogic {
     @WithMockCustomUser(username = "TestUser", role = "CUSTOMER")
     fun purchaseTickets_ticketAgeLimited() = runBlocking {
 
-        val availableTicket = AvailableTicketCreationDTO(10.0, "DAILY", 15 ,99, setOf("A"))
+        val availableTicket = AvailableTicketCreationDTO(10.0, "DAILY", 15 ,99, "A")
         val ticket = adminService.addTicket(availableTicket)
 
 
@@ -125,11 +156,34 @@ class UnitTestsBusinessLogic {
         Assertions.assertEquals(HttpStatus.UNAUTHORIZED, customerService.getSingleOrder(100).first)
     }
 
+    @Test
+    fun getSingleOrderWithoutLogin() = runBlocking {
+        Assertions.assertEquals(HttpStatus.BAD_REQUEST, customerService.getSingleOrder(1).first)
+    }
+
+    @Test
+    @WithMockCustomUser(username = "TestUser", role = "CUSTOMER")
+    fun getSingleOrder_Wrong() = runBlocking {
+        val availableTicket = AvailableTicketCreationDTO(10.0, "DAILY", 0 ,99, "A")
+        val ticket = adminService.addTicket(availableTicket)
+
+
+        val purchaseRequest = PurchaseRequestDTO(10, 12345678912345,"11-2021",123,"Test")
+        val buyTicket = customerService.purchaseTicket(ticket.second?.ticketId!!, purchaseRequest)
+
+        val getOrder = customerService.getSingleOrder(buyTicket.second?.id!!)
+
+        availableTicketsRepository.deleteById(ticket.second?.ticketId!!).subscribe()
+        ordersRepository.deleteById(getOrder.second?.id!!).subscribe()
+        Assertions.assertEquals(HttpStatus.OK, getOrder.first)
+
+    }
+
     /** ADMIN */
 
     @Test
     fun addTicket_Correctly() = runBlocking {
-        val availableTicket = AvailableTicketCreationDTO(10.0, "DAILY", 0 ,99, setOf("A"))
+        val availableTicket = AvailableTicketCreationDTO(10.0, "DAILY", 0 ,99, "A")
         val ticket = adminService.addTicket(availableTicket)
 
         availableTicketsRepository.deleteById(ticket.second?.ticketId!!).subscribe()
@@ -138,7 +192,23 @@ class UnitTestsBusinessLogic {
 
     @Test
     fun addTicket_minAgeMajor99() = runBlocking {
-        val availableTicket = AvailableTicketCreationDTO(10.0, "DAILY", 100,99, setOf("A"))
+        val availableTicket = AvailableTicketCreationDTO(10.0, "DAILY", 100,99, "A")
+        val ticket = adminService.addTicket(availableTicket)
+
+        Assertions.assertEquals(HttpStatus.BAD_REQUEST, ticket.first)
+    }
+
+    @Test
+    fun addTicket_minAgeMinor0() = runBlocking {
+        val availableTicket = AvailableTicketCreationDTO(10.0, "DAILY", -1,99, "A")
+        val ticket = adminService.addTicket(availableTicket)
+
+        Assertions.assertEquals(HttpStatus.BAD_REQUEST, ticket.first)
+    }
+
+    @Test
+    fun addTicket_minAgeNull() = runBlocking {
+        val availableTicket = AvailableTicketCreationDTO(10.0, "DAILY", null, 99, "A")
         val ticket = adminService.addTicket(availableTicket)
 
         Assertions.assertEquals(HttpStatus.BAD_REQUEST, ticket.first)
@@ -146,7 +216,23 @@ class UnitTestsBusinessLogic {
 
     @Test
     fun addTicket_maxAgeMajor99() = runBlocking {
-        val availableTicket = AvailableTicketCreationDTO(10.0, "DAILY", 0 ,100, setOf("A"))
+        val availableTicket = AvailableTicketCreationDTO(10.0, "DAILY", 0 ,100, "A")
+        val ticket = adminService.addTicket(availableTicket)
+
+        Assertions.assertEquals(HttpStatus.BAD_REQUEST, ticket.first)
+    }
+
+    @Test
+    fun addTicket_maxAgeMinor0() = runBlocking {
+        val availableTicket = AvailableTicketCreationDTO(10.0, "DAILY", 0 ,-1, "A")
+        val ticket = adminService.addTicket(availableTicket)
+
+        Assertions.assertEquals(HttpStatus.BAD_REQUEST, ticket.first)
+    }
+
+    @Test
+    fun addTicket_maxAgeNull() = runBlocking {
+        val availableTicket = AvailableTicketCreationDTO(10.0, "DAILY", 0 ,null, "A")
         val ticket = adminService.addTicket(availableTicket)
 
         Assertions.assertEquals(HttpStatus.BAD_REQUEST, ticket.first)
@@ -154,7 +240,7 @@ class UnitTestsBusinessLogic {
 
     @Test
     fun addTicket_typeWrong() = runBlocking {
-        val availableTicket = AvailableTicketCreationDTO(10.0, "AA", 0 ,99, setOf("A"))
+        val availableTicket = AvailableTicketCreationDTO(10.0, "AA", 0 ,99, "A")
         val ticket = adminService.addTicket(availableTicket)
 
         Assertions.assertEquals(HttpStatus.BAD_REQUEST, ticket.first)

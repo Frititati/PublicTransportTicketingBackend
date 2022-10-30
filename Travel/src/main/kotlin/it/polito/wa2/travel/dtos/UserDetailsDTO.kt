@@ -17,7 +17,7 @@ data class UserDetailsDTO(
     val address: String?,
     @get:NotNull
     @get:PastOrPresent
-    val dateOfBirth: LocalDateTime?,
+    val dateOfBirth: String?,
     @get:NotNull
     @get:Min(1000000000)
     @get:Max(999999999999999)
@@ -25,5 +25,13 @@ data class UserDetailsDTO(
 )
 
 fun UserDetails.toDTO(): UserDetailsDTO {
-    return UserDetailsDTO(name, address, dateOfBirth, telephoneNumber)
+    return UserDetailsDTO(name, address, dateToString(dateOfBirth), telephoneNumber)
+}
+
+fun dateToString(dateOfBirth: LocalDateTime?) : String? {
+    return if (dateOfBirth == null) {
+        null
+    } else {
+        "${dateOfBirth.year}-${dateOfBirth.monthValue}-${dateOfBirth.dayOfMonth}"
+    }
 }

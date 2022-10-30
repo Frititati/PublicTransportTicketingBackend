@@ -10,8 +10,8 @@ data class Order(
     @Id
     @Column("id")
     var id: Long?,
-    @Column("nickname")
-    var nickname : String,
+    @Column("username")
+    var username : String,
     @Column("number_tickets")
     var numberTickets: Int,
     @Column("ticket_id")

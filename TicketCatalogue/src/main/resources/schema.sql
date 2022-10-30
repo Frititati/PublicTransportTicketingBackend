@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS available_tickets (
 
 CREATE TABLE IF NOT EXISTS orders (
     id serial PRIMARY KEY,
-    nickname varchar,
+    username varchar,
     number_tickets integer,
     ticket_id double precision,
     status varchar,
