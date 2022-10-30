@@ -101,7 +101,7 @@ class TravelerService {
         }
     }
 
-    suspend fun processTicketAddition(ticketAddition: TicketAddition) {
+    suspend fun processTicketAddition(ticketAddition: TicketAddition): Boolean {
         try {
             val user = userDetailsRepo.findOneByUsername(ticketAddition.username).awaitSingle()
             val generatedKey: SecretKey = Keys.hmacShaKeyFor(ticketKey.toByteArray(StandardCharsets.UTF_8))
@@ -125,10 +125,13 @@ class TravelerService {
                 ).awaitLast()
 
                 tickets.add(ticket.toDTO())
+                return true
             }
         } catch (e: Exception) {
             log.error(e.message)
+            return false
         }
+        return false
     }
 
 
@@ -141,13 +144,15 @@ class TravelerService {
         }
     }
 
-    suspend fun processUserRegister(userRegister: UserRegister) {
-        try {
+    suspend fun processUserRegister(userRegister: UserRegister): Boolean {
+        return try {
             userDetailsRepo.save(
                 UserDetails(null, userRegister.username, null, null, null, null)
             ).awaitLast()
+            true
         } catch (e: Exception) {
             println("Process User Register Exception ${e.message}")
+            false
         }
     }
 }

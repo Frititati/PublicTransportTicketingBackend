@@ -1,11 +1,12 @@
 package it.polito.wa2.travel
 
 import it.polito.wa2.travel.dtos.UserDetailsDTO
+import it.polito.wa2.travel.entities.TicketAddition
+import it.polito.wa2.travel.entities.TicketType
 import it.polito.wa2.travel.entities.UserRegister
 import it.polito.wa2.travel.repositories.UserDetailsRepository
 import it.polito.wa2.travel.security.Role
 import it.polito.wa2.travel.services.TravelerService
-import kotlinx.coroutines.reactive.awaitLast
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions
@@ -82,14 +83,14 @@ class UnitTestsBusinessLogic {
             userDetailsRepository.deleteAllByUsername("TestUser").awaitSingleOrNull()
             val user = UserRegister("TestUser")
             travelService.processUserRegister(user)
-            Assertions.assertEquals(travelService.getUserTickets("TestUser").first, HttpStatus.OK)
+            Assertions.assertEquals(HttpStatus.OK, travelService.getUserTickets("TestUser").first)
         }
     }
 
     @Test
     fun testGetTravelers() {
         runBlocking {
-            Assertions.assertEquals(travelService.getTravelers().first, HttpStatus.OK)
+            Assertions.assertEquals(HttpStatus.OK, travelService.getTravelers().first)
         }
     }
 
@@ -100,7 +101,24 @@ class UnitTestsBusinessLogic {
             userDetailsRepository.deleteAllByUsername("TestUser").awaitSingleOrNull()
             val user = UserRegister("TestUser")
             travelService.processUserRegister(user)
-            Assertions.assertEquals(travelService.getUserProfile("TestUser").first, HttpStatus.OK)
+            Assertions.assertEquals(HttpStatus.OK,travelService.getUserProfile("TestUser").first)
+        }
+    }
+    @Test
+    fun testProcessTicketAddition(){
+        runBlocking {
+            val t = TicketAddition(1,"A",TicketType.DAILY,"TestUser")
+            Assertions.assertEquals(true, travelService.processTicketAddition(t))
+        }
+    }
+
+    @Test
+    @WithMockCustomUser(username = "TestUser", role = Role.CUSTOMER)
+    fun testProcessUserAddition(){
+        runBlocking {
+            userDetailsRepository.deleteAllByUsername("TestUser").awaitSingleOrNull()
+            val u = UserRegister("TestUser")
+            Assertions.assertEquals(true, travelService.processUserRegister(u))
         }
     }
 }
