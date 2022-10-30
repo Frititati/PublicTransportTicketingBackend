@@ -7,7 +7,7 @@ import java.time.LocalDateTime
 import java.util.*
 
 @Table("ticket_purchased")
-class TicketPurchased(
+class TicketPurchased  (
     @Id
     @Column("id")
     var id : Long?,
@@ -24,4 +24,6 @@ class TicketPurchased(
     val type : String,
     @Column("jws")
     val jws : String,
+    @Column("user_id")
+    val userID : Long,
 )
