@@ -8,6 +8,6 @@ import reactor.core.publisher.Mono
 @Repository
 interface UserDetailsRepository : R2dbcRepository<UserDetails, Long> {
     fun findOneByUsername(username: String): Mono<UserDetails>
-
-    fun existsUserDetailsByUsername(username: String) : Mono<Boolean>
+    fun deleteAllByUsername(username: String): Mono<Void>
+    fun existsUserDetailsByUsername(username: String): Mono<Boolean>
 }

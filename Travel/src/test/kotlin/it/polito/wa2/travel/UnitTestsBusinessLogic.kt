@@ -1,13 +1,24 @@
 package it.polito.wa2.travel
 
 import it.polito.wa2.travel.dtos.UserDetailsDTO
+import it.polito.wa2.travel.entities.UserRegister
+import it.polito.wa2.travel.repositories.UserDetailsRepository
+import it.polito.wa2.travel.security.Role
 import it.polito.wa2.travel.services.TravelerService
+import kotlinx.coroutines.reactive.awaitLast
+import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpStatus
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
+import org.springframework.security.core.context.SecurityContext
+import org.springframework.security.core.context.SecurityContextHolder
+import org.springframework.security.core.authority.SimpleGrantedAuthority
+import org.springframework.security.test.context.support.WithSecurityContext
+import org.springframework.security.test.context.support.WithSecurityContextFactory
 import org.springframework.test.context.ContextConfiguration
 
 @SpringBootTest
@@ -16,43 +27,80 @@ class UnitTestsBusinessLogic {
 
     @Autowired
     lateinit var travelService: TravelerService
-    annotation class WithMockCustomUser(val username: String, val role : String)
+
+    @Autowired
+    lateinit var userDetailsRepository: UserDetailsRepository
+
+    @Retention(AnnotationRetention.RUNTIME)
+    @WithSecurityContext(factory = WithMockCustomUserSecurityContextFactory::class)
+    annotation class WithMockCustomUser(val username: String, val role: Role)
+
+    class WithMockCustomUserSecurityContextFactory : WithSecurityContextFactory<WithMockCustomUser> {
+        override fun createSecurityContext(customUser: WithMockCustomUser): SecurityContext {
+            val context = SecurityContextHolder.createEmptyContext()
+            val principal = customUser.username
+            val auth = UsernamePasswordAuthenticationToken(
+                principal, null, mutableListOf(SimpleGrantedAuthority("ROLE_${customUser.role}"))
+            )
+            context.authentication = auth
+            return context
+        }
+    }
 
     @Test
     fun retrieveUserTransactionsWrong() = runBlocking {
-        Assertions.assertEquals(HttpStatus.BAD_REQUEST, travelService.getUserProfile("wgat").first)
+        Assertions.assertEquals(HttpStatus.BAD_REQUEST, travelService.getUserProfile("fail").first)
     }
+
     @Test
-    @WithMockCustomUser(username = "TestUser", role = "CUSTOMER")
-    fun retrieveUserCorrectly() = runBlocking {
-        Assertions.assertEquals(HttpStatus.OK, travelService.getUserProfile("TestUser").first)
-    }
-    @Test
-    @WithMockCustomUser(username = "TestUser", role = "CUSTOMER")
-    fun userUpdateTest(){
-        val u = UserDetailsDTO("name2","address",null,null)
+    @WithMockCustomUser(username = "TestUser", role = Role.CUSTOMER)
+    fun retrieveUserCorrectly() {
         runBlocking {
-            Assertions.assertEquals(travelService.userUpdate(u), HttpStatus.ACCEPTED)
+            userDetailsRepository.deleteAllByUsername("TestUser").awaitSingleOrNull()
+            val user = UserRegister("TestUser")
+            travelService.processUserRegister(user)
+            Assertions.assertEquals(HttpStatus.OK, travelService.getUserProfile("TestUser").first)
         }
     }
+
     @Test
-    @WithMockCustomUser(username = "TestUser", role = "CUSTOMER")
-    fun testUserTickets(){
+    @WithMockCustomUser(username = "TestUser", role = Role.CUSTOMER)
+    fun userUpdateTest() {
         runBlocking {
-            Assertions.assertEquals(travelService.getUserTickets("TestUser").first,HttpStatus.ACCEPTED)
+            userDetailsRepository.deleteAllByUsername("TestUser").awaitSingleOrNull()
+            val u = UserDetailsDTO("name", "address", "2011-08-08", 1234567890)
+            val user = UserRegister("TestUser")
+            travelService.processUserRegister(user)
+            Assertions.assertEquals(HttpStatus.ACCEPTED, travelService.userUpdate(u))
         }
     }
+
     @Test
-    fun testGetTravelers(){
+    @WithMockCustomUser(username = "TestUser", role = Role.CUSTOMER)
+    fun testUserTickets() {
         runBlocking {
-            Assertions.assertEquals(travelService.getTravelers().first,HttpStatus.ACCEPTED)
+            userDetailsRepository.deleteAllByUsername("TestUser").awaitSingleOrNull()
+            val user = UserRegister("TestUser")
+            travelService.processUserRegister(user)
+            Assertions.assertEquals(travelService.getUserTickets("TestUser").first, HttpStatus.OK)
         }
     }
+
     @Test
-    @WithMockCustomUser(username = "TestUser", role = "CUSTOMER")
-    fun testGetUserProfile(){
+    fun testGetTravelers() {
         runBlocking {
-            Assertions.assertEquals(travelService.getUserProfile("TestUser").first,HttpStatus.ACCEPTED)
+            Assertions.assertEquals(travelService.getTravelers().first, HttpStatus.OK)
+        }
+    }
+
+    @Test
+    @WithMockCustomUser(username = "TestUser", role = Role.CUSTOMER)
+    fun testGetUserProfile() {
+        runBlocking {
+            userDetailsRepository.deleteAllByUsername("TestUser").awaitSingleOrNull()
+            val user = UserRegister("TestUser")
+            travelService.processUserRegister(user)
+            Assertions.assertEquals(travelService.getUserProfile("TestUser").first, HttpStatus.OK)
         }
     }
 }

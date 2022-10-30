@@ -62,9 +62,6 @@ class TravelerService {
             .map { obj: SecurityContext -> obj.authentication.principal as String }.awaitLast()
         return try {
             if (userDetailsRepo.existsUserDetailsByUsername(username).awaitSingle()) {
-
-
-
                 val user = userDetailsRepo.findOneByUsername(username).awaitSingle()
                 user.address = userDetails.address
 
