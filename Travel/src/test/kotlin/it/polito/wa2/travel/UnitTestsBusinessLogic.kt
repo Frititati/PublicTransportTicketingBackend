@@ -20,12 +20,12 @@ class UnitTestsBusinessLogic {
 
     @Test
     fun retrieveUserTransactionsWrong() = runBlocking {
-        Assertions.assertEquals(HttpStatus.BAD_REQUEST, travelService.getUserByNickname().first)
+        Assertions.assertEquals(HttpStatus.BAD_REQUEST, travelService.getUserProfile("wgat").first)
     }
     @Test
     @WithMockCustomUser(username = "TestUser", role = "CUSTOMER")
     fun retrieveUserCorrectly() = runBlocking {
-        Assertions.assertEquals(HttpStatus.OK, travelService.getUserByNickname().first)
+        Assertions.assertEquals(HttpStatus.OK, travelService.getUserProfile("TestUser").first)
     }
     @Test
     @WithMockCustomUser(username = "TestUser", role = "CUSTOMER")
