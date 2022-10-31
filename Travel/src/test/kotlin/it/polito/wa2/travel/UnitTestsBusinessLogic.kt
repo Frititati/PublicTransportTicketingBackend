@@ -49,13 +49,13 @@ class UnitTestsBusinessLogic {
     }
 
     @Test
-    fun retrieveUserTransactionsWrong() = runBlocking {
+    fun getUserProfile_Wrong() = runBlocking {
         Assertions.assertEquals(HttpStatus.BAD_REQUEST, travelService.getUserProfile("fail").first)
     }
 
     @Test
     @WithMockCustomUser(username = "TestUser", role = Role.CUSTOMER)
-    fun retrieveUserCorrectly() {
+    fun getUserProfile_Correct() {
         runBlocking {
             userDetailsRepository.deleteAllByUsername("TestUser").awaitSingleOrNull()
             val user = UserRegister("TestUser")
@@ -66,7 +66,7 @@ class UnitTestsBusinessLogic {
 
     @Test
     @WithMockCustomUser(username = "TestUser", role = Role.CUSTOMER)
-    fun userUpdateTest() {
+    fun userUpdate_Correct() {
         runBlocking {
             userDetailsRepository.deleteAllByUsername("TestUser").awaitSingleOrNull()
             val u = UserDetailsDTO("name", "address", "2011-08-08", 1234567890)
@@ -75,10 +75,21 @@ class UnitTestsBusinessLogic {
             Assertions.assertEquals(HttpStatus.ACCEPTED, travelService.userUpdate(u))
         }
     }
+    @Test
+    @WithMockCustomUser(username = "TestUser", role = Role.CUSTOMER)
+    fun userUpdate_Wrong() {
+        runBlocking {
+            userDetailsRepository.deleteAllByUsername("TestUser").awaitSingleOrNull()
+            val u = UserDetailsDTO("name", "address", "2011-13-08", 1234567890)
+            val user = UserRegister("TestUser")
+            travelService.processUserRegister(user)
+            Assertions.assertEquals(HttpStatus.BAD_REQUEST, travelService.userUpdate(u))
+        }
+    }
 
     @Test
     @WithMockCustomUser(username = "TestUser", role = Role.CUSTOMER)
-    fun testUserTickets() {
+    fun getUserTickets_Correct() {
         runBlocking {
             userDetailsRepository.deleteAllByUsername("TestUser").awaitSingleOrNull()
             val user = UserRegister("TestUser")
@@ -86,26 +97,23 @@ class UnitTestsBusinessLogic {
             Assertions.assertEquals(HttpStatus.OK, travelService.getUserTickets("TestUser").first)
         }
     }
+    @Test
+    @WithMockCustomUser(username = "TestUser", role = Role.CUSTOMER)
+    fun getUserTickets_Wrong() {
+        runBlocking {
+            Assertions.assertEquals(HttpStatus.BAD_REQUEST, travelService.getUserTickets("TesasdtUser").first)
+        }
+    }
 
     @Test
-    fun testGetTravelers() {
+    fun getTravelers_Correct() {
         runBlocking {
             Assertions.assertEquals(HttpStatus.OK, travelService.getTravelers().first)
         }
     }
 
     @Test
-    @WithMockCustomUser(username = "TestUser", role = Role.CUSTOMER)
-    fun testGetUserProfile() {
-        runBlocking {
-            userDetailsRepository.deleteAllByUsername("TestUser").awaitSingleOrNull()
-            val user = UserRegister("TestUser")
-            travelService.processUserRegister(user)
-            Assertions.assertEquals(HttpStatus.OK,travelService.getUserProfile("TestUser").first)
-        }
-    }
-    @Test
-    fun testProcessTicketAddition(){
+    fun processTicketAddition_Correct(){
         runBlocking {
             val t = TicketAddition(1,"A",TicketType.DAILY,"TestUser")
             Assertions.assertEquals(true, travelService.processTicketAddition(t))
@@ -114,7 +122,7 @@ class UnitTestsBusinessLogic {
 
     @Test
     @WithMockCustomUser(username = "TestUser", role = Role.CUSTOMER)
-    fun testProcessUserAddition(){
+    fun processUserRegister_Correct(){
         runBlocking {
             userDetailsRepository.deleteAllByUsername("TestUser").awaitSingleOrNull()
             val u = UserRegister("TestUser")
