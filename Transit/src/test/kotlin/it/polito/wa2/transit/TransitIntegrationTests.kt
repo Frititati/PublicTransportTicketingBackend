@@ -166,23 +166,24 @@ class TransitIntegrationTests {
         val baseUrl = "http://localhost:$port"
         val auth = HttpHeaders()
         auth.set("Authorization", createJWT("Admin", Role.ADMIN))
-        val time = TimeReportDTO("2022-10-17", localDateToString(LocalDateTime.now()))
+        val time = TimeReportDTO(localDateToString(LocalDateTime.now().minusDays(3)), localDateToString(LocalDateTime.now()))
         val request = HttpEntity(time, auth)
-        val response = restTemplate.postForEntity<Unit>("$baseUrl/admin/transit/", request)
-        print(response.statusCode)
+        val response = restTemplate.exchange("$baseUrl/admin/transit/", HttpMethod.POST, request, String::class.java)
         assert(response.statusCode == HttpStatus.OK)
     }
 
     @Test
     fun getTransitByOrderTimePeriodAndNickname(){
         val baseUrl = "http://localhost:$port"
-        val nickname = "prova1"
+        val username = "prova1"
         val auth = HttpHeaders()
-        auth.set("Authorization", createJWT("Admin", Role.ADMIN))
+        val jwt = createJWT("Admin", Role.ADMIN)
+        auth.set("Authorization", jwt)
 
         val time = TimeReportDTO("2021-10-17", localDateToString(LocalDateTime.now()))
+
         val request = HttpEntity(time, auth)
-        val response = restTemplate.postForEntity<Unit>("$baseUrl/admin/transit/$nickname", request)
+        val response = restTemplate.exchange("$baseUrl/admin/transit/${username}", HttpMethod.POST, request, String::class.java)
         assert(response.statusCode == HttpStatus.OK)
     }
 
