@@ -76,9 +76,11 @@ class TransitUnitTest {
     @Test
     @WithMockCustomUser("Device1", "DEVICE")
     fun validateDailyTicket() = runBlocking {
-        val jws = createJWSTicket(UUID.randomUUID().toString(), LocalDateTime.now().plusHours(1), LocalDateTime.now(), "DAILY", "A", "prova1")
+        val uuid  = UUID.randomUUID()
+        val jws = createJWSTicket(uuid.toString(), LocalDateTime.now().plusHours(1), LocalDateTime.now(), "DAILY", "A", "prova1")
         val ticketToValidate = TicketToValidateDTO(jws)
         Assertions.assertEquals(HttpStatus.ACCEPTED, transitService.validateTicket(ticketToValidate).first)
+        transitService.deleteTicketByTicketId(uuid)
     }
 
     @Test
@@ -92,21 +94,24 @@ class TransitUnitTest {
     @Test
     @WithMockCustomUser("Device1", "DEVICE")
     fun validateDailyTicketMultipleTimes() = runBlocking {
-        val jws = createJWSTicket(UUID.randomUUID().toString(), LocalDateTime.now().plusHours(1), LocalDateTime.now(), "DAILY", "A", "prova1")
+        val uuid = UUID.randomUUID()
+        val jws = createJWSTicket(uuid.toString(), LocalDateTime.now().plusHours(1), LocalDateTime.now(), "DAILY", "A", "prova1")
         val ticketToValidate = TicketToValidateDTO(jws)
         Assertions.assertEquals(HttpStatus.ACCEPTED, transitService.validateTicket(ticketToValidate).first)
-        print("first ticket validated!\n")
         Assertions.assertEquals(HttpStatus.BAD_REQUEST, transitService.validateTicket(ticketToValidate).first)
+        transitService.deleteTicketByTicketId(uuid)
     }
 
 
     @Test
     @WithMockCustomUser("Device1", "DEVICE")
     fun validateNotDailyTicketMultipleTimes() = runBlocking {
-        val jws = createJWSTicket(UUID.randomUUID().toString(), LocalDateTime.now().plusHours(1), LocalDateTime.now(), "MONTHLY", "A", "prova1")
+        val uuid = UUID.randomUUID()
+        val jws = createJWSTicket(uuid.toString(), LocalDateTime.now().plusHours(1), LocalDateTime.now(), "MONTHLY", "A", "prova1")
         val ticketToValidate = TicketToValidateDTO(jws)
         Assertions.assertEquals(HttpStatus.ACCEPTED, transitService.validateTicket(ticketToValidate).first)
         Assertions.assertEquals(HttpStatus.ACCEPTED, transitService.validateTicket(ticketToValidate).first)
+        transitService.deleteTicketByTicketId(uuid)
     }
 
     /** TRANSIT REPORT TEST */
@@ -131,7 +136,6 @@ class TransitUnitTest {
     @Test
     @WithMockCustomUser("Admin", "Admin")
     fun getAllTransitByTimePeriod() = runBlocking {
-        //TODO: discuss about reasonable values
         val timeReport = TimeReportDTO("2022-10-18", "2022-10-20")
         Assertions.assertEquals(HttpStatus.OK, transitService.getAllTransitByTimePeriod(timeReport).first)
     }
@@ -139,7 +143,6 @@ class TransitUnitTest {
     @Test
     @WithMockCustomUser("Admin", "Admin")
     fun getAllTransitByTimePeriodWrong() = runBlocking {
-        //TODO: discuss about reasonable values for time report
         val timeReport = TimeReportDTO("2022-10-18", "")
         Assertions.assertEquals(HttpStatus.BAD_REQUEST, transitService.getAllTransitByTimePeriod(timeReport).first)
     }
@@ -147,7 +150,6 @@ class TransitUnitTest {
     @Test
     @WithMockCustomUser("Admin", "Admin")
     fun getAllTransitByNicknameTimePeriod() = runBlocking {
-        //TODO: discuss about reasonable values for time report
         val timeReport = TimeReportDTO("2022-10-18", "2022-10-20")
         val nickname = "prova1"
         Assertions.assertEquals(HttpStatus.OK, transitService.getAllTransitByNicknameAndTimePeriod(nickname, timeReport).first)
@@ -156,7 +158,6 @@ class TransitUnitTest {
     @Test
     @WithMockCustomUser("Admin", "Admin")
     fun getAllTransitByEmptyNicknameTimePeriod() = runBlocking {
-        //TODO: discuss about reasonable values for time report
         val timeReport = TimeReportDTO("2022-10-18", "2022-10-20")
         val nickname = ""
         Assertions.assertEquals(HttpStatus.BAD_REQUEST, transitService.getAllTransitByNicknameAndTimePeriod(nickname, timeReport).first)

@@ -174,6 +174,9 @@ class TransitService {
         } else Pair(HttpStatus.BAD_REQUEST, Flux.empty())
     }
 
+    fun deleteTicketByTicketId(ticket_id: UUID){
+        return ticketValidatedRepository.deleteByTicketId(ticket_id)
+    }
 
     /**
      * @param timeReport contains initialDate and finalDate inserted by the user in the yyyy-MM-dd format

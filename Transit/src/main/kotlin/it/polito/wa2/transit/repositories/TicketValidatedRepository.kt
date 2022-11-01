@@ -17,4 +17,5 @@ interface TicketValidatedRepository : R2dbcRepository<TicketValidated, Long> {
 
     fun findTicketValidatedByValidationDateGreaterThanEqualAndValidationDateLessThanEqualAndNickname(initialDate : LocalDateTime, finalDate: LocalDateTime, nickname: String): Flux<TicketValidated>
 
+    fun deleteByTicketId(ticket_id: UUID)
 }
