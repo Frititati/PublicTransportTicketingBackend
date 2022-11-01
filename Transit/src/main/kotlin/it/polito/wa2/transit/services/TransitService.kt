@@ -49,7 +49,6 @@ class TransitService {
                 Jwts.parserBuilder().setSigningKey(generatedKey).build().parseClaimsJws(ticket.jws)
 
                 // we know ticket is valid
-
                 val zidTicket = Jwts.parserBuilder().setSigningKey(generatedKey).build()
                     .parseClaimsJws(ticket.jws).body["zid"].toString()
                 val type = Jwts.parserBuilder().setSigningKey(generatedKey).build()
@@ -67,13 +66,18 @@ class TransitService {
                 return if (zidTicket.contains(zidMachine)) {
                     // check if ticket already exists inside db
                     // if false the ticket is daily and it already exists in the DB, so it's no longer valid.
-                    if ((type !== "DAILY") || (type==="DAILY" && !ticketValidatedRepository.existsByTicketId(ticketId).awaitLast() )) {
-                        // save in repo
+                    if (!type.equals("DAILY")){
                         val entity = TicketValidated(null, ticketId, LocalDateTime.now(), zidTicket, nickname)
                         ticketValidatedRepository.save(entity).awaitLast()
 
                         val dto: TicketValidatedDTO = entity.toDTO()
+                        // allow passage
+                        Pair(HttpStatus.ACCEPTED, dto)
+                    } else if (type.equals("DAILY") && !ticketValidatedRepository.existsByTicketId(ticketId).awaitLast()) {
+                        val entity = TicketValidated(null, ticketId, LocalDateTime.now(), zidTicket, nickname)
+                        ticketValidatedRepository.save(entity).awaitLast()
 
+                        val dto: TicketValidatedDTO = entity.toDTO()
                         // allow passage
                         Pair(HttpStatus.ACCEPTED, dto)
                     } else Pair(HttpStatus.BAD_REQUEST, null)
@@ -114,11 +118,13 @@ class TransitService {
      *         List of all the validated tickets for a specific zone or null
      */
     suspend fun getAllTransitByZone(zid: String): Pair<HttpStatus, Flux<TicketValidatedDTO>> {
-        return try {
-            Pair(HttpStatus.OK, ticketValidatedRepository.findTicketValidatedByZid(zid).map { it.toDTO() })
-        } catch (e: Exception) {
-            Pair(HttpStatus.BAD_REQUEST, Flux.empty())
-        }
+        return if (zid.matches("[a-zA-Z]+".toRegex())){
+            try {
+                Pair(HttpStatus.OK, ticketValidatedRepository.findTicketValidatedByZid(zid).map { it.toDTO() })
+            } catch (e: Exception) {
+                Pair(HttpStatus.BAD_REQUEST, Flux.empty())
+            }
+        } else Pair(HttpStatus.BAD_REQUEST, Flux.empty())
     }
 
     /**
@@ -152,18 +158,20 @@ class TransitService {
         nickname: String,
         timeReport: TimeReportDTO,
     ): Pair<HttpStatus, Flux<TicketValidatedDTO>> {
-        return try {
-            val formatter = formatDate(timeReport)
-            Pair(
-                HttpStatus.OK,
-                ticketValidatedRepository.findTicketValidatedByValidationDateGreaterThanEqualAndValidationDateLessThanEqualAndNickname(
-                    formatter.first,
-                    formatter.second,
-                    nickname
-                ).map { it.toDTO() })
-        } catch (e: Exception) {
-            Pair(HttpStatus.BAD_REQUEST, Flux.empty())
-        }
+        return if (!nickname.isEmpty()){
+            try {
+                val formatter = formatDate(timeReport)
+                Pair(
+                    HttpStatus.OK,
+                    ticketValidatedRepository.findTicketValidatedByValidationDateGreaterThanEqualAndValidationDateLessThanEqualAndNickname(
+                        formatter.first,
+                        formatter.second,
+                        nickname
+                    ).map { it.toDTO() })
+            } catch (e: Exception) {
+                Pair(HttpStatus.BAD_REQUEST, Flux.empty())
+            }
+        } else Pair(HttpStatus.BAD_REQUEST, Flux.empty())
     }
 
 

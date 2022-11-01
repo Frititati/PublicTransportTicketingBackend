@@ -33,7 +33,7 @@ class TransitUnitTest {
     @Autowired
     lateinit var transitService: TransitService
 
-    @Value("\${application.loginKey}")
+    @Value("\${application.ticketKey}")
     lateinit var secretString: String
 
     @Value("\${application.tokenPrefix}")
@@ -69,22 +69,22 @@ class TransitUnitTest {
             .claim("zid", zones)
             .claim("username", username).signWith(generatedKey).compact()
 
-        return "$prefix$jwt"
+        return jwt
     }
 
     /** TICKET VALIDATION TEST */
     @Test
-    @WithMockCustomUser("Admin", "ADMIN")
+    @WithMockCustomUser("Device1", "DEVICE")
     fun validateDailyTicket() = runBlocking {
-        val jws = createJWSTicket("4f30c1dc-4fad-11ed-bdc3-0242ac120002", LocalDateTime.now().plusHours(1), LocalDateTime.now(), "DAILY", "A", "prova1")
+        val jws = createJWSTicket(UUID.randomUUID().toString(), LocalDateTime.now().plusHours(1), LocalDateTime.now(), "DAILY", "A", "prova1")
         val ticketToValidate = TicketToValidateDTO(jws)
-        Assertions.assertEquals(HttpStatus.OK, transitService.validateTicket(ticketToValidate).first)
+        Assertions.assertEquals(HttpStatus.ACCEPTED, transitService.validateTicket(ticketToValidate).first)
     }
 
     @Test
     @WithMockCustomUser("Device1", "DEVICE")
     fun validateTicketExpired() = runBlocking {
-        val jws = createJWSTicket("5501f7fc-4fad-11ed-bdc3-0242ac120002", LocalDateTime.now().minusHours(1), LocalDateTime.now(), "DAILY", "A", "prova1")
+        val jws = createJWSTicket(UUID.randomUUID().toString(), LocalDateTime.now().minusHours(1), LocalDateTime.now(), "DAILY", "A", "prova1")
         val ticketToValidate = TicketToValidateDTO(jws)
         Assertions.assertEquals(HttpStatus.BAD_REQUEST, transitService.validateTicket(ticketToValidate).first)
     }
@@ -92,9 +92,10 @@ class TransitUnitTest {
     @Test
     @WithMockCustomUser("Device1", "DEVICE")
     fun validateDailyTicketMultipleTimes() = runBlocking {
-        val jws = createJWSTicket("5a69727e-4fad-11ed-bdc3-0242ac120002", LocalDateTime.now().plusHours(1), LocalDateTime.now(), "DAILY", "A", "prova1")
+        val jws = createJWSTicket(UUID.randomUUID().toString(), LocalDateTime.now().plusHours(1), LocalDateTime.now(), "DAILY", "A", "prova1")
         val ticketToValidate = TicketToValidateDTO(jws)
-        Assertions.assertEquals(HttpStatus.OK, transitService.validateTicket(ticketToValidate).first)
+        Assertions.assertEquals(HttpStatus.ACCEPTED, transitService.validateTicket(ticketToValidate).first)
+        print("first ticket validated!\n")
         Assertions.assertEquals(HttpStatus.BAD_REQUEST, transitService.validateTicket(ticketToValidate).first)
     }
 
@@ -102,10 +103,10 @@ class TransitUnitTest {
     @Test
     @WithMockCustomUser("Device1", "DEVICE")
     fun validateNotDailyTicketMultipleTimes() = runBlocking {
-        val jws = createJWSTicket("5fd33344-4fad-11ed-bdc3-0242ac120002", LocalDateTime.now().plusHours(1), LocalDateTime.now(), "MONTHLY", "A", "prova1")
+        val jws = createJWSTicket(UUID.randomUUID().toString(), LocalDateTime.now().plusHours(1), LocalDateTime.now(), "MONTHLY", "A", "prova1")
         val ticketToValidate = TicketToValidateDTO(jws)
-        Assertions.assertEquals(HttpStatus.OK, transitService.validateTicket(ticketToValidate).first)
-        Assertions.assertEquals(HttpStatus.OK, transitService.validateTicket(ticketToValidate).first)
+        Assertions.assertEquals(HttpStatus.ACCEPTED, transitService.validateTicket(ticketToValidate).first)
+        Assertions.assertEquals(HttpStatus.ACCEPTED, transitService.validateTicket(ticketToValidate).first)
     }
 
     /** TRANSIT REPORT TEST */
