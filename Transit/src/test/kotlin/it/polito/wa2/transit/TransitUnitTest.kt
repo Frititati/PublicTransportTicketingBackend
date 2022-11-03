@@ -5,6 +5,7 @@ import io.jsonwebtoken.security.Keys
 import it.polito.wa2.transit.dtos.PrincipalUserDTO
 import it.polito.wa2.transit.dtos.TicketToValidateDTO
 import it.polito.wa2.transit.dtos.TimeReportDTO
+import it.polito.wa2.transit.repositories.TicketValidatedRepository
 import it.polito.wa2.transit.services.TransitService
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions
@@ -33,12 +34,12 @@ class TransitUnitTest {
     @Autowired
     lateinit var transitService: TransitService
 
+    @Autowired
+    lateinit var ticketValidatedRepository: TicketValidatedRepository
+
     @Value("\${application.ticketKey}")
     lateinit var secretString: String
-
-    @Value("\${application.tokenPrefix}")
-    lateinit var prefix: String
-
+    
     @Retention(AnnotationRetention.RUNTIME)
     @WithSecurityContext(factory = WithMockCustomUserSecurityContextFactory::class)
     annotation class WithMockCustomUser(val username: String, val role : String)
@@ -79,8 +80,10 @@ class TransitUnitTest {
         val uuid  = UUID.randomUUID()
         val jws = createJWSTicket(uuid.toString(), LocalDateTime.now().plusHours(1), LocalDateTime.now(), "DAILY", "A", "prova1")
         val ticketToValidate = TicketToValidateDTO(jws)
-        Assertions.assertEquals(HttpStatus.ACCEPTED, transitService.validateTicket(ticketToValidate).first)
-        transitService.deleteTicketByTicketId(uuid)
+
+        val response = transitService.validateTicket(ticketToValidate)
+        ticketValidatedRepository.deleteById(response.second?.id!!).subscribe()
+        Assertions.assertEquals(HttpStatus.ACCEPTED, response.first)
     }
 
     @Test
@@ -97,9 +100,12 @@ class TransitUnitTest {
         val uuid = UUID.randomUUID()
         val jws = createJWSTicket(uuid.toString(), LocalDateTime.now().plusHours(1), LocalDateTime.now(), "DAILY", "A", "prova1")
         val ticketToValidate = TicketToValidateDTO(jws)
-        Assertions.assertEquals(HttpStatus.ACCEPTED, transitService.validateTicket(ticketToValidate).first)
-        Assertions.assertEquals(HttpStatus.BAD_REQUEST, transitService.validateTicket(ticketToValidate).first)
-        transitService.deleteTicketByTicketId(uuid)
+
+        val response = transitService.validateTicket(ticketToValidate)
+        val response2 = transitService.validateTicket(ticketToValidate)
+        ticketValidatedRepository.deleteById(response.second?.id!!).subscribe()
+        Assertions.assertEquals(HttpStatus.ACCEPTED, response.first)
+        Assertions.assertEquals(HttpStatus.BAD_REQUEST, response2.first)
     }
 
 
@@ -109,9 +115,14 @@ class TransitUnitTest {
         val uuid = UUID.randomUUID()
         val jws = createJWSTicket(uuid.toString(), LocalDateTime.now().plusHours(1), LocalDateTime.now(), "MONTHLY", "A", "prova1")
         val ticketToValidate = TicketToValidateDTO(jws)
-        Assertions.assertEquals(HttpStatus.ACCEPTED, transitService.validateTicket(ticketToValidate).first)
-        Assertions.assertEquals(HttpStatus.ACCEPTED, transitService.validateTicket(ticketToValidate).first)
-        transitService.deleteTicketByTicketId(uuid)
+
+        val response1 = transitService.validateTicket(ticketToValidate)
+        val response2 = transitService.validateTicket(ticketToValidate)
+
+        ticketValidatedRepository.deleteById(response1.second?.id!!).subscribe()
+        ticketValidatedRepository.deleteById(response2.second?.id!!).subscribe()
+        Assertions.assertEquals(HttpStatus.ACCEPTED, response1.first)
+        Assertions.assertEquals(HttpStatus.ACCEPTED, response2.first)
     }
 
     /** TRANSIT REPORT TEST */
