@@ -15,8 +15,11 @@ data class UserDetailsDTO(
     @get:NotNull
     @get:Size(min = 1, max = 100)
     val address: String?,
+    @get:NotEmpty
+    @get:NotBlank
     @get:NotNull
-    @get:PastOrPresent
+    @get:Size(min = 10, max = 10)
+    // yyyy-MM-dd format
     val dateOfBirth: String?,
     @get:NotNull
     @get:Min(1000000000)
