@@ -51,12 +51,12 @@ class AdminEndpoint(val transitService: TransitService) {
      *
      * @return List of validated tickets of a specific zone and a specific user on a selectable time period
      */
-    @PostMapping("/admin/transit/{nickname}/")
+    @PostMapping("/admin/transit/{username}")
     suspend fun getTransitByUserTimePeriod(
-        @PathVariable nickname: String,
+        @PathVariable username: String,
         @RequestBody timeReport: TimeReportDTO,
     ): ResponseEntity<Flux<TicketValidatedDTO>> {
-        val result = transitService.getAllTransitByNicknameAndTimePeriod(nickname, timeReport)
+        val result = transitService.getAllTransitByNicknameAndTimePeriod(username, timeReport)
         return ResponseEntity(result.second, result.first)
     }
 

@@ -5,6 +5,7 @@ import io.jsonwebtoken.security.Keys
 import it.polito.wa2.transit.dtos.PrincipalUserDTO
 import it.polito.wa2.transit.dtos.TicketToValidateDTO
 import it.polito.wa2.transit.dtos.TimeReportDTO
+import it.polito.wa2.transit.repositories.TicketValidatedRepository
 import it.polito.wa2.transit.services.TransitService
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions
@@ -33,12 +34,12 @@ class TransitUnitTest {
     @Autowired
     lateinit var transitService: TransitService
 
-    @Value("\${application.loginKey}")
+    @Autowired
+    lateinit var ticketValidatedRepository: TicketValidatedRepository
+
+    @Value("\${application.ticketKey}")
     lateinit var secretString: String
-
-    @Value("\${application.tokenPrefix}")
-    lateinit var prefix: String
-
+    
     @Retention(AnnotationRetention.RUNTIME)
     @WithSecurityContext(factory = WithMockCustomUserSecurityContextFactory::class)
     annotation class WithMockCustomUser(val username: String, val role : String)
@@ -69,22 +70,26 @@ class TransitUnitTest {
             .claim("zid", zones)
             .claim("username", username).signWith(generatedKey).compact()
 
-        return "$prefix$jwt"
+        return jwt
     }
 
     /** TICKET VALIDATION TEST */
     @Test
-    @WithMockCustomUser("Admin", "ADMIN")
+    @WithMockCustomUser("Device1", "DEVICE")
     fun validateDailyTicket() = runBlocking {
-        val jws = createJWSTicket("4f30c1dc-4fad-11ed-bdc3-0242ac120002", LocalDateTime.now().plusHours(1), LocalDateTime.now(), "DAILY", "A", "prova1")
+        val uuid  = UUID.randomUUID()
+        val jws = createJWSTicket(uuid.toString(), LocalDateTime.now().plusHours(1), LocalDateTime.now(), "DAILY", "A", "prova1")
         val ticketToValidate = TicketToValidateDTO(jws)
-        Assertions.assertEquals(HttpStatus.OK, transitService.validateTicket(ticketToValidate).first)
+
+        val response = transitService.validateTicket(ticketToValidate)
+        ticketValidatedRepository.deleteById(response.second?.id!!).subscribe()
+        Assertions.assertEquals(HttpStatus.ACCEPTED, response.first)
     }
 
     @Test
     @WithMockCustomUser("Device1", "DEVICE")
     fun validateTicketExpired() = runBlocking {
-        val jws = createJWSTicket("5501f7fc-4fad-11ed-bdc3-0242ac120002", LocalDateTime.now().minusHours(1), LocalDateTime.now(), "DAILY", "A", "prova1")
+        val jws = createJWSTicket(UUID.randomUUID().toString(), LocalDateTime.now().minusHours(1), LocalDateTime.now(), "DAILY", "A", "prova1")
         val ticketToValidate = TicketToValidateDTO(jws)
         Assertions.assertEquals(HttpStatus.BAD_REQUEST, transitService.validateTicket(ticketToValidate).first)
     }
@@ -92,20 +97,32 @@ class TransitUnitTest {
     @Test
     @WithMockCustomUser("Device1", "DEVICE")
     fun validateDailyTicketMultipleTimes() = runBlocking {
-        val jws = createJWSTicket("5a69727e-4fad-11ed-bdc3-0242ac120002", LocalDateTime.now().plusHours(1), LocalDateTime.now(), "DAILY", "A", "prova1")
+        val uuid = UUID.randomUUID()
+        val jws = createJWSTicket(uuid.toString(), LocalDateTime.now().plusHours(1), LocalDateTime.now(), "DAILY", "A", "prova1")
         val ticketToValidate = TicketToValidateDTO(jws)
-        Assertions.assertEquals(HttpStatus.OK, transitService.validateTicket(ticketToValidate).first)
-        Assertions.assertEquals(HttpStatus.BAD_REQUEST, transitService.validateTicket(ticketToValidate).first)
+
+        val response = transitService.validateTicket(ticketToValidate)
+        val response2 = transitService.validateTicket(ticketToValidate)
+        ticketValidatedRepository.deleteById(response.second?.id!!).subscribe()
+        Assertions.assertEquals(HttpStatus.ACCEPTED, response.first)
+        Assertions.assertEquals(HttpStatus.BAD_REQUEST, response2.first)
     }
 
 
     @Test
     @WithMockCustomUser("Device1", "DEVICE")
     fun validateNotDailyTicketMultipleTimes() = runBlocking {
-        val jws = createJWSTicket("5fd33344-4fad-11ed-bdc3-0242ac120002", LocalDateTime.now().plusHours(1), LocalDateTime.now(), "MONTHLY", "A", "prova1")
+        val uuid = UUID.randomUUID()
+        val jws = createJWSTicket(uuid.toString(), LocalDateTime.now().plusHours(1), LocalDateTime.now(), "MONTHLY", "A", "prova1")
         val ticketToValidate = TicketToValidateDTO(jws)
-        Assertions.assertEquals(HttpStatus.OK, transitService.validateTicket(ticketToValidate).first)
-        Assertions.assertEquals(HttpStatus.OK, transitService.validateTicket(ticketToValidate).first)
+
+        val response1 = transitService.validateTicket(ticketToValidate)
+        val response2 = transitService.validateTicket(ticketToValidate)
+
+        ticketValidatedRepository.deleteById(response1.second?.id!!).subscribe()
+        ticketValidatedRepository.deleteById(response2.second?.id!!).subscribe()
+        Assertions.assertEquals(HttpStatus.ACCEPTED, response1.first)
+        Assertions.assertEquals(HttpStatus.ACCEPTED, response2.first)
     }
 
     /** TRANSIT REPORT TEST */
@@ -130,7 +147,6 @@ class TransitUnitTest {
     @Test
     @WithMockCustomUser("Admin", "Admin")
     fun getAllTransitByTimePeriod() = runBlocking {
-        //TODO: discuss about reasonable values
         val timeReport = TimeReportDTO("2022-10-18", "2022-10-20")
         Assertions.assertEquals(HttpStatus.OK, transitService.getAllTransitByTimePeriod(timeReport).first)
     }
@@ -138,7 +154,6 @@ class TransitUnitTest {
     @Test
     @WithMockCustomUser("Admin", "Admin")
     fun getAllTransitByTimePeriodWrong() = runBlocking {
-        //TODO: discuss about reasonable values for time report
         val timeReport = TimeReportDTO("2022-10-18", "")
         Assertions.assertEquals(HttpStatus.BAD_REQUEST, transitService.getAllTransitByTimePeriod(timeReport).first)
     }
@@ -146,7 +161,6 @@ class TransitUnitTest {
     @Test
     @WithMockCustomUser("Admin", "Admin")
     fun getAllTransitByNicknameTimePeriod() = runBlocking {
-        //TODO: discuss about reasonable values for time report
         val timeReport = TimeReportDTO("2022-10-18", "2022-10-20")
         val nickname = "prova1"
         Assertions.assertEquals(HttpStatus.OK, transitService.getAllTransitByNicknameAndTimePeriod(nickname, timeReport).first)
@@ -155,7 +169,6 @@ class TransitUnitTest {
     @Test
     @WithMockCustomUser("Admin", "Admin")
     fun getAllTransitByEmptyNicknameTimePeriod() = runBlocking {
-        //TODO: discuss about reasonable values for time report
         val timeReport = TimeReportDTO("2022-10-18", "2022-10-20")
         val nickname = ""
         Assertions.assertEquals(HttpStatus.BAD_REQUEST, transitService.getAllTransitByNicknameAndTimePeriod(nickname, timeReport).first)

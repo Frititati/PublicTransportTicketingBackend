@@ -115,7 +115,8 @@ class TravelerService {
                 val jwt = Jwts.builder().setSubject(uuid.toString())
                     .setExpiration(Date.from(expiresAt.atZone(ZoneId.systemDefault()).toInstant()))
                     .setIssuedAt(Date.from(issuedAt.atZone(ZoneId.systemDefault()).toInstant()))
-                    .claim("type", ticketAddition.type).claim("zid", ticketAddition.zones)
+                    .claim("type", ticketAddition.type)
+                    .claim("zid", ticketAddition.zones)
                     .claim("username", ticketAddition.username).signWith(generatedKey).compact()
 
                 val ticket = ticketPurchasedRepo.save(

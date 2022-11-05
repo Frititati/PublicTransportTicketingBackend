@@ -61,7 +61,6 @@ class TransitIntegrationTests {
             registry.add("spring.r2dbc.username", postgres::getUsername)
             registry.add("spring.r2dbc.password", postgres::getPassword)
         }
-
     }
 
     @LocalServerPort
@@ -72,6 +71,9 @@ class TransitIntegrationTests {
 
     @Value("\${application.loginKey}")
     lateinit var secretString: String
+
+    @Value("\${application.ticketKey}")
+    lateinit var secretTicketString: String
 
     @Value("\${application.tokenPrefix}")
     lateinit var prefix: String
@@ -84,7 +86,7 @@ class TransitIntegrationTests {
             .setSubject(username)
             .setExpiration(
                 Date.from(
-                    LocalDateTime.now().plusHours(1).atZone(ZoneId.systemDefault()).toInstant()
+                    LocalDateTime.now().plusHours(24).atZone(ZoneId.systemDefault()).toInstant()
                 )
             )
             .setIssuedAt(Date.from(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant()))
@@ -116,7 +118,7 @@ class TransitIntegrationTests {
 
     fun createJWSTicket(uuid: String, expiresAt:LocalDateTime, issuedAt:LocalDateTime, type:String, zones:String, username:String): String {
 
-        val generatedKey: SecretKey = Keys.hmacShaKeyFor(secretString.toByteArray(StandardCharsets.UTF_8))
+        val generatedKey: SecretKey = Keys.hmacShaKeyFor(secretTicketString.toByteArray(StandardCharsets.UTF_8))
 
         val jwt = Jwts.builder().setSubject(uuid)
             .setExpiration(Date.from(expiresAt.atZone(ZoneId.systemDefault()).toInstant()))
@@ -125,7 +127,7 @@ class TransitIntegrationTests {
             .claim("zid", zones)
             .claim("username", username).signWith(generatedKey).compact()
 
-        return "$prefix$jwt"
+        return jwt
     }
 
     fun localDateToString(date: LocalDateTime): String{
@@ -138,9 +140,12 @@ class TransitIntegrationTests {
         val baseUrl = "http://localhost:$port"
 
         val auth = HttpHeaders()
-        auth.set("Authorization", createJWT("Admin", Role.ADMIN))
-        val entity = HttpEntity<String>("")
-        val response = restTemplate.exchange("$baseUrl/transit", HttpMethod.GET, entity, String::class.java)
+        auth.set("Authorization", createJWT("User", Role.ADMIN))
+
+        val entity = HttpEntity<String>("parameters", auth)
+        val response = restTemplate.exchange("$baseUrl/admin/transit", HttpMethod.GET, entity, String::class.java)
+
+        print(response.statusCode)
         assert(response.statusCode == HttpStatus.OK)
     }
 
@@ -150,8 +155,8 @@ class TransitIntegrationTests {
         val zid = "A"
         val auth = HttpHeaders()
         auth.set("Authorization", createJWT("Admin", Role.ADMIN))
-        val entity = HttpEntity<String>("")
-        val response = restTemplate.exchange("$baseUrl/transit/$zid", HttpMethod.GET, entity, String::class.java)
+        val entity = HttpEntity<String>("", auth)
+        val response = restTemplate.exchange("$baseUrl/admin/transit/$zid", HttpMethod.GET, entity, String::class.java)
         assert(response.statusCode == HttpStatus.OK)
     }
 
@@ -161,22 +166,24 @@ class TransitIntegrationTests {
         val baseUrl = "http://localhost:$port"
         val auth = HttpHeaders()
         auth.set("Authorization", createJWT("Admin", Role.ADMIN))
-        val time = TimeReportDTO("2022-10-17", localDateToString(LocalDateTime.now()))
+        val time = TimeReportDTO(localDateToString(LocalDateTime.now().minusDays(3)), localDateToString(LocalDateTime.now()))
         val request = HttpEntity(time, auth)
-        val response = restTemplate.postForEntity<Unit>("$baseUrl/admin/transit", request)
+        val response = restTemplate.exchange("$baseUrl/admin/transit/", HttpMethod.POST, request, String::class.java)
         assert(response.statusCode == HttpStatus.OK)
     }
 
     @Test
     fun getTransitByOrderTimePeriodAndNickname(){
         val baseUrl = "http://localhost:$port"
-        val nickname = "prova1"
+        val username = "prova1"
         val auth = HttpHeaders()
-        auth.set("Authorization", createJWT("Admin", Role.ADMIN))
+        val jwt = createJWT("Admin", Role.ADMIN)
+        auth.set("Authorization", jwt)
 
         val time = TimeReportDTO("2021-10-17", localDateToString(LocalDateTime.now()))
+
         val request = HttpEntity(time, auth)
-        val response = restTemplate.postForEntity<Unit>("$baseUrl/admin/transit/$nickname", request)
+        val response = restTemplate.exchange("$baseUrl/admin/transit/${username}", HttpMethod.POST, request, String::class.java)
         assert(response.statusCode == HttpStatus.OK)
     }
 
@@ -191,7 +198,7 @@ class TransitIntegrationTests {
         val ticketToValidate = TicketToValidateDTO(jws)
         val request = HttpEntity(ticketToValidate, auth)
         val response = restTemplate.postForEntity<Unit>("$baseUrl/ticket/validate", request)
-        assert(response.statusCode == HttpStatus.OK)
+        assert(response.statusCode == HttpStatus.ACCEPTED)
     }
 
     @Test
@@ -232,7 +239,7 @@ class TransitIntegrationTests {
         val request = HttpEntity(ticketToValidate, auth)
 
         val response = restTemplate.postForEntity<Unit>("$baseUrl/ticket/validate", request)
-        assert(response.statusCode == HttpStatus.OK)
+        assert(response.statusCode == HttpStatus.ACCEPTED)
 
         val response2 = restTemplate.postForEntity<Unit>("$baseUrl/ticket/validate", request)
         assert(response2.statusCode == HttpStatus.BAD_REQUEST)
@@ -250,9 +257,9 @@ class TransitIntegrationTests {
         val request = HttpEntity(ticketToValidate, auth)
 
         val response = restTemplate.postForEntity<Unit>("$baseUrl/ticket/validate", request)
-        assert(response.statusCode == HttpStatus.OK)
+        assert(response.statusCode == HttpStatus.ACCEPTED)
 
         val response2 = restTemplate.postForEntity<Unit>("$baseUrl/ticket/validate", request)
-        assert(response2.statusCode == HttpStatus.OK)
+        assert(response2.statusCode == HttpStatus.ACCEPTED)
     }
 }
