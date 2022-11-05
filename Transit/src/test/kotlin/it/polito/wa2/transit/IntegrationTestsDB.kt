@@ -33,7 +33,7 @@ import javax.crypto.SecretKey
 
 @Testcontainers
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class TransitIntegrationTests {
+class IntegrationTestsDB {
     companion object {
 
         @Bean

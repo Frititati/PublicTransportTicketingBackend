@@ -20,7 +20,7 @@ class WebSecurityConfig(private val jwtUtils: JwtUtils) {
 
         return http.authorizeExchange()
             .pathMatchers("/ticket/validate").hasRole("DEVICE")
-            .pathMatchers("/admin/transit/**").hasRole("ADMIN")
+            .pathMatchers("/admin/**").hasRole("ADMIN")
             .and()
             .addFilterAt(jwtAuthTokenFilter(), SecurityWebFiltersOrder.AUTHORIZATION)
             .csrf().disable()

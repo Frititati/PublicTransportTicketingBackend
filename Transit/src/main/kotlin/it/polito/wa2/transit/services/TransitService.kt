@@ -53,8 +53,8 @@ class TransitService {
                     .parseClaimsJws(ticket.jws).body["zid"].toString()
                 val type = Jwts.parserBuilder().setSigningKey(generatedKey).build()
                     .parseClaimsJws(ticket.jws).body["type"].toString()
-                val nickname = Jwts.parserBuilder().setSigningKey(generatedKey).build()
-                    .parseClaimsJws(ticket.jws).body["nickname"].toString()
+                val username = Jwts.parserBuilder().setSigningKey(generatedKey).build()
+                    .parseClaimsJws(ticket.jws).body["username"].toString()
                 val zidMachine = ReactiveSecurityContextHolder.getContext()
                     .map { obj: SecurityContext -> obj.authentication.principal as PrincipalUserDTO }.awaitLast().zone!!
                 val ticketId = UUID.fromString(
@@ -67,14 +67,14 @@ class TransitService {
                     // check if ticket already exists inside db
                     // if false the ticket is daily and it already exists in the DB, so it's no longer valid.
                     if (!type.equals("DAILY")){
-                        val entity = TicketValidated(null, ticketId, LocalDateTime.now(), zidTicket, nickname)
+                        val entity = TicketValidated(null, ticketId, LocalDateTime.now(), zidTicket, username)
                         ticketValidatedRepository.save(entity).awaitLast()
 
                         val dto: TicketValidatedDTO = entity.toDTO()
                         // allow passage
                         Pair(HttpStatus.ACCEPTED, dto)
                     } else if (type.equals("DAILY") && !ticketValidatedRepository.existsByTicketId(ticketId).awaitLast()) {
-                        val entity = TicketValidated(null, ticketId, LocalDateTime.now(), zidTicket, nickname)
+                        val entity = TicketValidated(null, ticketId, LocalDateTime.now(), zidTicket, username)
                         ticketValidatedRepository.save(entity).awaitLast()
 
                         val dto: TicketValidatedDTO = entity.toDTO()
@@ -148,25 +148,25 @@ class TransitService {
     }
 
     /**
-     * @param nickname username of the user for which the admin wants to check the validated tickets
+     * @param username username of the user for which the admin wants to check the validated tickets
      * @param timeReport contains initialDate and finalDate inserted by the user in the yyyy-MM-dd format
      *
      * @return HttpStatus 200 OK or 400 error
      *         List of all the validated tickets in a selected time period for a specific user or null
      */
-    suspend fun getAllTransitByNicknameAndTimePeriod(
-        nickname: String,
+    suspend fun getAllTransitByUsernameAndTimePeriod(
+        username: String,
         timeReport: TimeReportDTO,
     ): Pair<HttpStatus, Flux<TicketValidatedDTO>> {
-        return if (!nickname.isEmpty()){
+        return if (!username.isEmpty()){
             try {
                 val formatter = formatDate(timeReport)
                 Pair(
                     HttpStatus.OK,
-                    ticketValidatedRepository.findTicketValidatedByValidationDateGreaterThanEqualAndValidationDateLessThanEqualAndNickname(
+                    ticketValidatedRepository.findTicketValidatedByValidationDateGreaterThanEqualAndValidationDateLessThanEqualAndUsername(
                         formatter.first,
                         formatter.second,
-                        nickname
+                        username
                     ).map { it.toDTO() })
             } catch (e: Exception) {
                 Pair(HttpStatus.BAD_REQUEST, Flux.empty())

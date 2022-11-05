@@ -46,7 +46,7 @@ class AdminEndpoint(val transitService: TransitService) {
     }
 
     /**
-     * @param nickname nickname of the user of which you want to see the validated tickets
+     * @param username username of the user of which you want to see the validated tickets
      * @param timeReport initialDate and finalDate of the period you want to check in the yyyy-MM-dd format
      *
      * @return List of validated tickets of a specific zone and a specific user on a selectable time period
@@ -56,7 +56,7 @@ class AdminEndpoint(val transitService: TransitService) {
         @PathVariable username: String,
         @RequestBody timeReport: TimeReportDTO,
     ): ResponseEntity<Flux<TicketValidatedDTO>> {
-        val result = transitService.getAllTransitByNicknameAndTimePeriod(username, timeReport)
+        val result = transitService.getAllTransitByUsernameAndTimePeriod(username, timeReport)
         return ResponseEntity(result.second, result.first)
     }
 

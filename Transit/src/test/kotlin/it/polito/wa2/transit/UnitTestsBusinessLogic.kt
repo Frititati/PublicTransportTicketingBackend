@@ -30,7 +30,7 @@ import javax.crypto.SecretKey
 
 @SpringBootTest
 @ContextConfiguration
-class TransitUnitTest {
+class UnitTestsBusinessLogic {
     @Autowired
     lateinit var transitService: TransitService
 
@@ -163,7 +163,7 @@ class TransitUnitTest {
     fun getAllTransitByNicknameTimePeriod() = runBlocking {
         val timeReport = TimeReportDTO("2022-10-18", "2022-10-20")
         val nickname = "prova1"
-        Assertions.assertEquals(HttpStatus.OK, transitService.getAllTransitByNicknameAndTimePeriod(nickname, timeReport).first)
+        Assertions.assertEquals(HttpStatus.OK, transitService.getAllTransitByUsernameAndTimePeriod(nickname, timeReport).first)
     }
 
     @Test
@@ -171,6 +171,6 @@ class TransitUnitTest {
     fun getAllTransitByEmptyNicknameTimePeriod() = runBlocking {
         val timeReport = TimeReportDTO("2022-10-18", "2022-10-20")
         val nickname = ""
-        Assertions.assertEquals(HttpStatus.BAD_REQUEST, transitService.getAllTransitByNicknameAndTimePeriod(nickname, timeReport).first)
+        Assertions.assertEquals(HttpStatus.BAD_REQUEST, transitService.getAllTransitByUsernameAndTimePeriod(nickname, timeReport).first)
     }
 }
