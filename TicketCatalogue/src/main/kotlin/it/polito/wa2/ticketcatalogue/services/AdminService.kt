@@ -47,6 +47,18 @@ class AdminService(
 
     private val log = LoggerFactory.getLogger(javaClass)
 
+    /**
+     * @param ticket {
+     *                  price: Double
+     *                  type: String
+     *                  minAge: Long
+     *                  maxAge: Long
+     *                  zones: String
+     *               }
+     *
+     * @return HttpStatus 200 OK or 400 error
+     *         ticket admin just created if everything is ok, otherwise null
+     */
     suspend fun addTicket(ticket: AvailableTicketCreationDTO): Pair<HttpStatus, AvailableTicketDTO?> {
 
         if (checkFields(ticket)) {
@@ -71,6 +83,10 @@ class AdminService(
         } else return Pair(HttpStatus.BAD_REQUEST, null)
     }
 
+    /**
+     * @return HttpStatus 200 OK or 400 error
+     *         list of all orders if everything is ok, otherwise null
+     */
     suspend fun retrieveAllOrders(): Pair<HttpStatus, Flux<OrderDTO>> {
         return try {
             Pair(HttpStatus.OK, ordersRepository.findAll().map { it.toDTO() })
@@ -80,6 +96,17 @@ class AdminService(
         }
     }
 
+    /**
+     * @param timeReport {
+     *                      initialDate: String in yyyy-MM-dd format
+     *                      finalDate: String in yyyy-MM-dd format
+     *                   }
+     *
+     * If timeReport is null, it returns all the orders saved in the db, otherwise filter them by the time period
+     *
+     * @return HttpStatus 200 OK or 400 error
+     *         list of orders if everything is ok, otherwise null
+     */
     suspend fun usersWithOrders(timeReport: TimeReportDTO?): Pair<HttpStatus, List<UserOrdersDTO>> {
         val jwt = ReactiveSecurityContextHolder.getContext()
             .map { obj: SecurityContext -> obj.authentication.principal as PrincipalUserDTO }.awaitFirstOrNull()?.jwt
@@ -119,6 +146,12 @@ class AdminService(
         }
     }
 
+    /**
+     * @param userId username of the selected user
+     *
+     * @return HttpStatus 200 OK or 400 error
+     *         information of the user profile if everything is ok, otherwise null
+     */
     suspend fun retrieveUserInfo(userId: String): Pair<HttpStatus, UserDetailsDTO?> {
         val jwt = ReactiveSecurityContextHolder.getContext()
             .map { obj: SecurityContext -> obj.authentication.principal as PrincipalUserDTO }.awaitLast().jwt!!
@@ -141,6 +174,18 @@ class AdminService(
         }
     }
 
+    /**
+     * @param userId username of the selected user
+     * @param timeReport {
+     *                      initialDate: String in yyyy-MM-dd format
+     *                      finalDate: String in yyyy-MM-dd format
+     *                   }
+     *
+     * If timeReport is null, it returns all the orders of the selected user, otherwise filter them also by the time period
+     *
+     * @return HttpStatus 200 OK or 400 error
+     *         list of orders for the selected user if everything is ok, otherwise null
+     */
     suspend fun getUserOrders(userId: String, timeReport: TimeReportDTO?): Pair<HttpStatus, Flux<OrderDTO>> {
         return try {
             val result = if (timeReport === null) ordersRepository.findAllByUsername(userId).map { it.toDTO() }
@@ -157,6 +202,19 @@ class AdminService(
 
     }
 
+    /**
+     * @param ticket {
+     *                  price: Double
+     *                  type: String
+     *                  minAge: Long
+     *                  maxAge: Long
+     *                  zones: String
+     *               }
+     *
+     * Check if all the data the admin passed when create a new ticket are ok, or if there is some problem in them
+     *
+     * @return true if everything is ok, otherwise fale
+     */
     fun checkFields(ticket: AvailableTicketCreationDTO): Boolean {
         return when {
             ticket.minAge === null -> false

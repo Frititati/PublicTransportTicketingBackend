@@ -16,6 +16,10 @@ class TicketService{
 
     private val log = LoggerFactory.getLogger(javaClass)
 
+    /**
+     * @return HttpStatus 200 OK or 400 error
+     *         list of all available tickets if everything is ok, otherwise null
+     */
     fun getAllTickets() : Pair<HttpStatus, Flux<AvailableTicketDTO>> {
         return try {
             Pair(HttpStatus.OK, availableTicketsRepository.findAll().map { it.toDTO() })

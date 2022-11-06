@@ -42,6 +42,9 @@ class CustomerEndpoint(val customerService: CustomerService) {
 
     }
 
+    /**
+     * @return Get the list of all the users' orders
+     */
     @GetMapping("/orders")
     suspend fun getAllOrders() : ResponseEntity<List<OrderDTO>?>{
         val result = customerService.getOrders()

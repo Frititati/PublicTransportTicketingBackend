@@ -49,7 +49,7 @@ class AdminEndpoint(val transitService: TransitService) {
      * @param username username of the user of which you want to see the validated tickets
      * @param timeReport initialDate and finalDate of the period you want to check in the yyyy-MM-dd format
      *
-     * @return List of validated tickets of a specific zone and a specific user on a selectable time period
+     * @return List of validated tickets of a specific user on a selectable time period
      */
     @PostMapping("/admin/transit/{username}")
     suspend fun getTransitByUserTimePeriod(

@@ -10,6 +10,9 @@ import reactor.core.publisher.Flux
 @RestController
 class TicketEndpoint(val ticketService: TicketService) {
 
+    /**
+     * @return JSON representation of all the available tickets
+     */
     @GetMapping("/tickets")
     suspend fun getTickets() : ResponseEntity<Flux<AvailableTicketDTO>> {
         val result = ticketService.getAllTickets()

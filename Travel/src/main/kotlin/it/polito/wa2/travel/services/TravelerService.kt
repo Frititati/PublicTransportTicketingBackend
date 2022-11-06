@@ -44,6 +44,12 @@ class TravelerService {
 
     private val log = LoggerFactory.getLogger(javaClass)
 
+    /**
+     * @param username Name of the selected user
+     *
+     * @return HttpStatus 200 OK or 400 error
+     *         user's info if everything is ok, otherwise null
+     */
     suspend fun getUserProfile(username: String): Pair<HttpStatus, Mono<UserDetailsDTO>> {
         return try {
             if (userDetailsRepo.existsUserDetailsByUsername(username).awaitSingle()) {
@@ -57,6 +63,16 @@ class TravelerService {
         }
     }
 
+    /**
+     * @param userDetails {
+     *                      name: String
+     *                      address: String
+     *                      dateOfBirth: String in the yyyy-MM-dd format
+     *                      telephoneNumber: Long
+     *                    }
+     *
+     * @return HttpStatus 202 ACCEPTED or 400 error
+     */
     suspend fun userUpdate(userDetails: UserDetailsDTO): HttpStatus {
         val username = ReactiveSecurityContextHolder.getContext()
             .map { obj: SecurityContext -> obj.authentication.principal as String }.awaitLast()
@@ -86,6 +102,12 @@ class TravelerService {
         }
     }
 
+    /**
+     * @param username Name of the selected user
+     *
+     * @return HttpStatus 200 OK or 400 error
+     *         List of all tickets purchased by the selected user if everything is ok, otherwise null
+     */
     suspend fun getUserTickets(username: String): Pair<HttpStatus, Flux<TicketPurchasedDTO>> {
         return try {
             if (userDetailsRepo.existsUserDetailsByUsername(username).awaitFirst()) {
@@ -101,6 +123,18 @@ class TravelerService {
         }
     }
 
+    /**
+     * @param ticketAddition {
+     *                          quantity: Int
+     *                          zones: String
+     *                          type: TicketType
+     *                          username: String
+     *                       }
+     *
+     * Take information of bought tickets from Kafka and save them with their JWT on the db
+     *
+     * @return true if everything works correctly, otherwise false
+     */
     suspend fun processTicketAddition(ticketAddition: TicketAddition): Boolean {
         try {
             val user = userDetailsRepo.findOneByUsername(ticketAddition.username).awaitSingle()
@@ -136,6 +170,10 @@ class TravelerService {
     }
 
 
+    /**
+     * @return HttpStatus 200 OK or 400 error
+     *         List of all customers' name if everything is ok, otherwise null
+     */
     suspend fun getTravelers(): Pair<HttpStatus, Flux<UsernameDTO>> {
         return try {
             val users = userDetailsRepo.findAll()
@@ -145,6 +183,16 @@ class TravelerService {
         }
     }
 
+    /**
+     * @param userRegister {
+     *                        username: String
+     *                     }
+     *
+     * Take username from Kafka when the user validate his profile on the RegistrationLogin service
+     * and create a new empty profile for him
+     *
+     * @return true if everything works correctly, otherwise false
+     */
     suspend fun processUserRegister(userRegister: UserRegister): Boolean {
         return try {
             userDetailsRepo.save(

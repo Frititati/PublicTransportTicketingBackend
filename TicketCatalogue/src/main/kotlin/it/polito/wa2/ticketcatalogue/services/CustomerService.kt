@@ -49,6 +49,23 @@ class CustomerService(
 
     private val log = LoggerFactory.getLogger(javaClass)
 
+    /**
+     * @param ticketId id of the ticket the user want to buy
+     * @param purchaseRequest {
+     *                          numberOfTickets: Int
+     *                          creditCard: Long
+     *                          expirationDate: String
+     *                          cvv: Int
+     *                          cardHolder: String
+     *                        }
+     *
+     * First it checks all the data passed by the user, then if everything is correct save the transaction
+     * inside the database and pass it through kafka to the Payment service that check the payment's data and
+     * accepted or rejected the payment
+     *
+     * @return HttpStatus 200 OK or 400 error
+     *         data of the order if everything is ok, otherwise null
+     */
     suspend fun purchaseTicket(ticketId: Long, purchaseRequest: PurchaseRequestDTO): Pair<HttpStatus, OrderDTO?> {
 
         try {
@@ -64,7 +81,7 @@ class CustomerService(
 
                 // In this case the ticket doesn't need to check the age of the user
                 if (ticket.minAge == 0L && ticket.maxAge == 99L) {
-                    return startPurchaseOrder(ticket, userJWT, purchaseRequest, ticketId)
+                    return startPurchaseOrder(ticket, purchaseRequest, ticketId)
 
                     // In this case it means that the ticket needs to check the age of the user
                 } else if (ticket.minAge > 0L || ticket.maxAge < 99L) {
@@ -82,7 +99,7 @@ class CustomerService(
 
 
                         // In this case the age of the user is ok to buy the ticket
-                        startPurchaseOrder(ticket, userJWT, purchaseRequest, ticketId)
+                        startPurchaseOrder(ticket, purchaseRequest, ticketId)
 
 
                     } else {
@@ -101,6 +118,20 @@ class CustomerService(
 
     }
 
+    /**
+     * @param purchase {
+     *                   id: Long
+     *                   username: String
+     *                   numberTickets: Int
+     *                   ticketId: Long
+     *                   status: PaymentStatus
+     *                   price: Double
+     *                   purchaseDate: LocalDateTime
+     *                 }
+     *
+     * If there is some problem sending the order through Kafka, we rejected it
+     * otherwise it remains pending forever
+     */
     private suspend fun rollbackDb(purchase: Order) {
         // here we rollback the order just to make sure the db is clean
         try {
@@ -112,6 +143,10 @@ class CustomerService(
     }
 
 
+    /**
+     * @return HttpStatus 200 OK or 400 error
+     *         list of all orders if everything is ok, otherwise null
+     */
     suspend fun getOrders(): Pair<HttpStatus, List<OrderDTO>?> {
 
         return try {
@@ -129,6 +164,12 @@ class CustomerService(
 
     }
 
+    /**
+     * @param orderId id of the selected order
+     *
+     * @return HttpStatus 200 OK or 400 error
+     *         selected order if everything is ok, otherwise null
+     */
     suspend fun getSingleOrder(orderId: Long): Pair<HttpStatus, OrderDTO?> {
         return try {
             val order = ordersRepository.findById(orderId).awaitFirstOrNull()
@@ -146,6 +187,13 @@ class CustomerService(
     }
 
 
+    /**
+     * @param jwt JWT of the user wants to retrieve its profile
+     *
+     * We contact the Travel microservice that contains the user's info and retrieve them
+     *
+     * @return profile of the user if everything is ok, otherwise null
+     */
     suspend fun retrieveUserInfo(jwt: String): UserDetailsDTO? {
         return try {
             val client = webClient.get()
@@ -167,47 +215,31 @@ class CustomerService(
         }
     }
 
-//    suspend fun contactTicketService(
-//        ticket: AvailableTicket,
-//        jwt: String,
-//        purchaseRequest: PurchaseRequestDTO
-//    ): List<TicketDTO> {
-//
-//        val body = TicketAddition(
-//            purchaseRequest.numberOfTickets,
-//            ticket.zones,
-//            ticket.type,
-//            ticket.type.exp.toString()
-//        )
-//
-//        println(body)
-//
-//        return try {
-//            val client = webClient.post()
-//                .uri("/my/tickets")
-//                .header("Authorization", "$prefixHeader$jwt")
-//                .bodyValue(body)
-//                .accept(MediaType.APPLICATION_JSON)
-//                .exchangeToMono { response ->
-//                    if (response.statusCode() == HttpStatus.CREATED) {
-//                        response.bodyToMono(mutableListOf<TicketDTO>()::class.java)
-//                    } else {
-//                        println("error ${response.statusCode()}")
-//                        Mono.empty()
-//                    }
-//                }.awaitLast()
-//
-//            client
-//
-//
-//        } catch (e: Exception) {
-//            emptyList()
-//        }
-//    }
-
+    /**
+     * @param ticket {
+     *                  ticketId: Long
+     *                  price: Double
+     *                  type: TicketType
+     *                  minAge: Long
+     *                  maxAge: Long
+     *                  zones: String
+     *               }
+     * @param purchaseRequest {
+     *                          numberOfTickets: Int
+     *                          creditCard: Long
+     *                          expirationDate: String
+     *                          cvv: Int
+     *                          cardHolder: String
+     *                        }
+     * @param ticketId id of the selected ticket
+     *
+     * We generated the order and send it through Kafka to the Payment microservice
+     *
+     * @return HttpStatus 200 OK or 400 error
+     *         order's info if everything is ok, otherwise null
+     */
     suspend fun startPurchaseOrder(
         ticket: AvailableTicket,
-        jwt: String,
         purchaseRequest: PurchaseRequestDTO,
         ticketId: Long,
     ): Pair<HttpStatus, OrderDTO?> {
@@ -269,6 +301,14 @@ class CustomerService(
         }
     }
 
+    /**
+     * @param purchaseOutcome {
+     *                          transactionId: Long
+     *                          status: PaymentStatus
+     *                        }
+     *
+     * If the payment will be accepted, we send the ticket's info to the Travel microservice through Kafka
+     */
     suspend fun processPurchaseOutcome(purchaseOutcome: PurchaseOutcome) {
         try {
             // initially we update the order
