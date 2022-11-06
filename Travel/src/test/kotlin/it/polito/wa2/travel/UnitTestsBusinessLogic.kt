@@ -1,8 +1,6 @@
 package it.polito.wa2.travel
 
 import it.polito.wa2.travel.dtos.UserDetailsDTO
-import it.polito.wa2.travel.entities.TicketAddition
-import it.polito.wa2.travel.entities.TicketType
 import it.polito.wa2.travel.entities.UserRegister
 import it.polito.wa2.travel.repositories.UserDetailsRepository
 import it.polito.wa2.travel.security.Role
@@ -21,6 +19,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.test.context.support.WithSecurityContext
 import org.springframework.security.test.context.support.WithSecurityContextFactory
 import org.springframework.test.context.ContextConfiguration
+import java.util.*
 
 @SpringBootTest
 @ContextConfiguration
@@ -57,10 +56,12 @@ class UnitTestsBusinessLogic {
     @WithMockCustomUser(username = "TestUser", role = Role.CUSTOMER)
     fun retrieveUserCorrectly() {
         runBlocking {
-            userDetailsRepository.deleteAllByUsername("TestUser").awaitSingleOrNull()
+            userDetailsRepository.deleteAllByUsername("TestUser").subscribe()
             val user = UserRegister("TestUser")
             travelService.processUserRegister(user)
-            Assertions.assertEquals(HttpStatus.OK, travelService.getUserProfile("TestUser").first)
+            val response = travelService.getUserProfile("TestUser")
+            userDetailsRepository.deleteAllByUsername("TestUser").subscribe()
+            Assertions.assertEquals(HttpStatus.OK, response.first)
         }
     }
 
@@ -102,13 +103,6 @@ class UnitTestsBusinessLogic {
             val user = UserRegister("TestUser")
             travelService.processUserRegister(user)
             Assertions.assertEquals(HttpStatus.OK,travelService.getUserProfile("TestUser").first)
-        }
-    }
-    @Test
-    fun testProcessTicketAddition(){
-        runBlocking {
-            val t = TicketAddition(1,"A",TicketType.DAILY,"TestUser")
-            Assertions.assertEquals(true, travelService.processTicketAddition(t))
         }
     }
 
