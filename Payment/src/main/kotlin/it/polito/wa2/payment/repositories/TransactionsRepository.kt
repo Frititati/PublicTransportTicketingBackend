@@ -6,6 +6,6 @@ import reactor.core.publisher.Flux
 
 interface TransactionsRepository : R2dbcRepository<Transaction, Long> {
 
-    fun findAllByNickname(nickname : String) : Flux<Transaction>
+    fun findAllByUsername(username : String) : Flux<Transaction>
 
 }

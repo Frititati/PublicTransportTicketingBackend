@@ -3,7 +3,7 @@ package it.polito.wa2.ticketcatalogue.entities
 import com.fasterxml.jackson.annotation.JsonProperty
 
 data class PurchaseOrder(
-    @JsonProperty("nickName")
+    @JsonProperty("username")
     val username: String,
     @JsonProperty("transactionId")
     val transactionId: Long,

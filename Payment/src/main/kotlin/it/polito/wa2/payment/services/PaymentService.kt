@@ -40,7 +40,7 @@ class PaymentService(
 
     /**
      * @param purchaseOrder {
-     *                          nickName: String
+     *                          username: String
      *                          transactionId: Long
      *                          price: Double
      *                          creditCard: Long
@@ -62,7 +62,7 @@ class PaymentService(
                     null,
                     purchaseOrder.transactionId,
                     purchaseOrder.price,
-                    purchaseOrder.nickName,
+                    purchaseOrder.username,
                     status
                 )
             ).awaitLast()
@@ -87,7 +87,7 @@ class PaymentService(
     }
 
     /**
-     * It takes information about user through the jwt in the Authorization header and extract the nickname
+     * It takes information about user through the jwt in the Authorization header and extract the username
      *
      * @return HttpStatus 200 OK or 400 error
      *         List of all the transactions made by the single user or null
@@ -95,10 +95,10 @@ class PaymentService(
     suspend fun userTransactions() : Pair<HttpStatus, Flux<TransactionDTO>> {
 
         return try {
-            val nickname = ReactiveSecurityContextHolder.getContext()
-                .map { obj: SecurityContext -> obj.authentication.principal as PrincipalUserDTO }.awaitLast().nickname!!
+            val username = ReactiveSecurityContextHolder.getContext()
+                .map { obj: SecurityContext -> obj.authentication.principal as PrincipalUserDTO }.awaitLast().username!!
 
-            Pair(HttpStatus.OK, transactionsRepository.findAllByNickname(nickname).map { it.toDTO() })
+            Pair(HttpStatus.OK, transactionsRepository.findAllByUsername(username).map { it.toDTO() })
 
         } catch(e: Exception) {
             log.error("Exception: $e", e)

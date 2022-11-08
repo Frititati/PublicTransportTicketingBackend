@@ -11,7 +11,7 @@ import java.time.LocalDateTime
 import java.util.*
 
 @SpringBootTest
-class UnitTestDTO {
+class UnitTestsDTO {
 
     @Test
     fun sameTicketPurchaseTest() {
@@ -59,4 +59,5 @@ class UnitTestDTO {
         val u2 = UserDetailsDTO("name2","address2","09/08/2011",1234567890)
         assert(u2!=u1.toDTO())
     }
+
 }

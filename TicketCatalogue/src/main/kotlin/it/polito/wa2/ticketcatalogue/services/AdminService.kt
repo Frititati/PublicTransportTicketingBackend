@@ -27,6 +27,7 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.stream.Collectors
+import kotlin.collections.HashMap
 
 @Service
 class AdminService(
@@ -132,10 +133,12 @@ class AdminService(
 
                 val mapper = ObjectMapper()
 
-                val result = Arrays.stream(objects).map { mapper.convertValue(it, String::class.java) }.map {
-                        val userOrders = orders?.filter { user -> user.username == it }
-                        return@map userOrders?.let { it1 -> UserOrdersDTO(it, it1) }
-                    }.collect(Collectors.toList())
+                val result = Arrays.stream(objects).map {
+                    mapper.convertValue(it, HashMap::class.java)
+                }.map {
+                    val userOrders = orders?.filter { user -> user.username == it.values.first().toString() }
+                    return@map userOrders?.let { it1 -> UserOrdersDTO(it.values.first().toString(), it1) }
+                }.collect(Collectors.toList())
 
                 Pair(HttpStatus.OK, result)
 

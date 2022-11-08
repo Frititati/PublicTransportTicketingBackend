@@ -13,8 +13,8 @@ data class Transaction(
     var transactionId: Long,
     @Column("price")
     var price: Double,
-    @Column("nickname")
-    var nickname: String,
+    @Column("username")
+    var username: String,
     @Column("status")
     var status: PaymentStatus
 )

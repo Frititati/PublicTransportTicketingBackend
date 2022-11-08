@@ -3,8 +3,8 @@ package it.polito.wa2.payment.entities
 import com.fasterxml.jackson.annotation.JsonProperty
 
 data class PurchaseOrder(
-    @JsonProperty("nickName")
-    val nickName: String,
+    @JsonProperty("username")
+    val username: String,
     @JsonProperty("transactionId")
     val transactionId: Long,
     @JsonProperty("price")

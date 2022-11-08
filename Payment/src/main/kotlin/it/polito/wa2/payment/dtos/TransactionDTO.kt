@@ -7,10 +7,10 @@ data class TransactionDTO(
     var id: Long?,
     var transactionId: Long,
     var price: Double,
-    var nickname: String,
+    var username: String,
     var status: PaymentStatus
 )
 
 fun Transaction.toDTO() : TransactionDTO {
-    return TransactionDTO(id, transactionId, price, nickname, status)
+    return TransactionDTO(id, transactionId, price, username, status)
 }

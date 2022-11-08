@@ -242,7 +242,7 @@ class RegisterService(
      * @param activation_code Int with the activation_code provided by email to the user
      *
      * @return HttpStatus 200 OK or 404 error
-     *         userId, nickname and email if everything is OK, otherwise null
+     *         userId, username and email if everything is OK, otherwise null
      */
     suspend fun validate(provisional_id: String, activation_code: Int): Pair<HttpStatus, ValidateDTO?> {
 
