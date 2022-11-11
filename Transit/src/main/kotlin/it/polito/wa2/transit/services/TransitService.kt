@@ -66,15 +66,15 @@ class TransitService {
                 return if (zidTicket.contains(zidMachine)) {
                     // check if ticket already exists inside db
                     // if false the ticket is daily and it already exists in the DB, so it's no longer valid.
-                    if (!type.equals("DAILY")){
-                        val entity = TicketValidated(null, ticketId, LocalDateTime.now(), zidTicket, username)
+                    if (!type.equals("SINGLE")){
+                        val entity = TicketValidated(null, ticketId, LocalDateTime.now(), zidMachine, username)
                         ticketValidatedRepository.save(entity).awaitLast()
 
                         val dto: TicketValidatedDTO = entity.toDTO()
                         // allow passage
                         Pair(HttpStatus.ACCEPTED, dto)
-                    } else if (type.equals("DAILY") && !ticketValidatedRepository.existsByTicketId(ticketId).awaitLast()) {
-                        val entity = TicketValidated(null, ticketId, LocalDateTime.now(), zidTicket, username)
+                    } else if (type.equals("SINGLE") && !ticketValidatedRepository.existsByTicketId(ticketId).awaitLast()) {
+                        val entity = TicketValidated(null, ticketId, LocalDateTime.now(), zidMachine, username)
                         ticketValidatedRepository.save(entity).awaitLast()
 
                         val dto: TicketValidatedDTO = entity.toDTO()
