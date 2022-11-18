@@ -22,7 +22,10 @@ import org.springframework.stereotype.Service
 import org.springframework.util.concurrent.ListenableFuture
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
+import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 @Service
 class CustomerService(
@@ -86,7 +89,11 @@ class CustomerService(
                     // In this case it means that the ticket needs to check the age of the user
                 } else if (ticket.minAge > 0L || ticket.maxAge < 99L) {
 
-                    val dateOfBirth = retrieveUserInfo(userJWT)?.dateOfBirth
+                    val dateOfBirthString = retrieveUserInfo(userJWT)?.dateOfBirth
+
+                    val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+                    val startDate = LocalDate.parse(dateOfBirthString, dateFormatter)
+                    val dateOfBirth = LocalDateTime.of(startDate, LocalTime.of(0, 0))
 
                     // If dateOfBirth is null it means that there is an error when connecting with the other service
                     // or that the user doesn't set it in his profile, so I have to return an error because I can't check it
